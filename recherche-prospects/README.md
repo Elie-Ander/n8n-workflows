@@ -23,7 +23,7 @@ Testé en conditions réelles : 5 agences immobilières indépendantes de Lyon t
 | Décrire la cible | Formulaire réservé aux comptes de ton n8n : type d'entreprise, zone, taille, signal, offre, nombre de prospects |
 | Lire les prospects déjà dans Notion | Récupère les domaines déjà en base pour éviter les doublons |
 | Préparer la recherche | Nettoie les champs et construit la liste des domaines à exclure |
-| Chercher avec Claude | Claude Opus 5 avec la recherche web (10 recherches au plus), réponse en JSON |
+| Chercher avec Claude | Claude Sonnet 5 avec la recherche web (20 recherches au plus), réponse en JSON |
 | Lister les prospects | Écarte annuaires, réseaux sociaux et doublons, ou crée une fiche « Erreur » qui explique pourquoi |
 | Vérifier le site | Appelle le site officiel de chaque prospect |
 | Noter la vérification | Donne le statut « À contacter » ou « Site à vérifier » |
