@@ -12,7 +12,7 @@ Chaque workflow est livré prêt à importer, documenté, et testé en condition
 | Reporting marketing hebdomadaire | Compare chaque lundi GA4, Search Console et Google Ads à la semaine précédente, fait rédiger la synthèse par Claude et l'envoie par e-mail | À venir |
 | Assistant marketing | Un chat où Claude interroge lui-même GA4 et Search Console, puis répond avec la période et la source de chaque chiffre | À venir |
 | Qualification de leads | Lit le site du prospect, note chaque demande sur 100, crée la fiche HubSpot et alerte le commercial quand le lead est chaud | À venir |
-| Recherche de prospects | Trouve de vraies entreprises qui correspondent à une cible, vérifie leur site et range chaque prospect dans Notion avec une phrase d'approche | À venir |
+| Recherche de prospects | Trouve de vraies entreprises qui correspondent à une cible, vérifie leur site et range chaque prospect dans Notion avec une phrase d'approche | [Disponible](recherche-prospects/) |
 
 ## Structure
 
