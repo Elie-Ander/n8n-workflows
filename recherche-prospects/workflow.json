@@ -1,0 +1,112 @@
+{
+  "name": "Recherche de prospects : Claude cherche, vérifie et remplit Notion",
+  "nodes": [
+    {
+      "parameters": {"authentication":"n8nUserAuth","formTitle":"Nouvelle recherche de prospects","formDescription":"Décrivez la cible. Les prospects arrivent dans Notion quelques minutes après l’envoi.","formFields":{"values":[{"fieldLabel":"Type d'entreprise","fieldName":"sector","placeholder":"Ex. : e-commerces de cosmétiques naturels","requiredField":true},{"fieldLabel":"Zone géographique","fieldName":"zone","placeholder":"Ex. : Lyon et sa région","requiredField":true},{"fieldLabel":"Taille visée","fieldType":"dropdown","fieldName":"size","fieldOptions":{"values":[{"option":"Indifférent"},{"option":"1 à 10 salariés"},{"option":"11 à 50 salariés"},{"option":"51 à 200 salariés"},{"option":"Plus de 200 salariés"}]}},{"fieldLabel":"Signal recherché","fieldType":"textarea","fieldName":"signal","placeholder":"Ex. : recrute en marketing, vient d’ouvrir une boutique, site ancien"},{"fieldLabel":"Notre offre en une phrase","fieldType":"textarea","fieldName":"offer","placeholder":"Ex. : audit SEO et GEO pour être visible dans Google et ChatGPT","requiredField":true},{"fieldLabel":"Nombre de prospects","fieldType":"dropdown","fieldName":"count","fieldOptions":{"values":[{"option":"5"},{"option":"10"},{"option":"15"}]},"requiredField":true}]},"options":{"appendAttribution":false,"buttonLabel":"Lancer la recherche","respondWithOptions":{"values":{"formSubmittedText":"Recherche lancée. Les prospects arrivent dans Notion d’ici quelques minutes."}}}},
+      "name": "Décrire la cible",
+      "type": "n8n-nodes-base.formTrigger",
+      "typeVersion": 2.6,
+      "position": [0, 304]
+    },
+    {
+      "parameters": {"resource":"databasePage","operation":"getAll","dataSourceId":{"__rl":true,"mode":"list","value":""},"returnAll":true,"options":{}},
+      "name": "Lire les prospects déjà dans Notion",
+      "type": "n8n-nodes-base.notion",
+      "typeVersion": 3,
+      "position": [224, 304],
+      "executeOnce": true,
+      "alwaysOutputData": true,
+      "onError": "continueRegularOutput"
+    },
+    {
+      "parameters": {"jsCode":"const f = $('Décrire la cible').first().json;\nconst HOST_CHARS = new RegExp('^[a-z0-9.-]+$');\nfunction pick(k, label) {\n  const v = f[k] !== undefined ? f[k] : f[label];\n  return v === undefined || v === null ? '' : String(v).trim();\n}\nfunction hostOf(u) {\n  let s = String(u || '').trim().toLowerCase();\n  if (!s) return '';\n  const p = s.indexOf('://');\n  if (p >= 0) s = s.slice(p + 3);\n  let end = s.length;\n  ['/', '?', '#'].forEach(function (c) { const i = s.indexOf(c); if (i >= 0 && i < end) end = i; });\n  s = s.slice(0, end);\n  const at = s.lastIndexOf('@');\n  if (at >= 0) s = s.slice(at + 1);\n  const colon = s.indexOf(':');\n  if (colon >= 0) s = s.slice(0, colon);\n  while (s.slice(-1) === '.') s = s.slice(0, -1);\n  return s;\n}\nfunction domainOf(u) {\n  const h = hostOf(u);\n  return h.indexOf('www.') === 0 ? h.slice(4) : h;\n}\nconst known = {};\nfunction walk(v, depth) {\n  if (depth > 6 || v === null || v === undefined) return;\n  if (typeof v === 'string') {\n    if (v.indexOf('http') === 0) {\n      const d = domainOf(v);\n      if (d && d.indexOf('.') > 0 && HOST_CHARS.test(d) && d.indexOf('notion.so') < 0 && d.indexOf('notion.site') < 0) known[d] = true;\n    }\n    return;\n  }\n  if (Array.isArray(v)) { v.forEach(function (x) { walk(x, depth + 1); }); return; }\n  if (typeof v === 'object') Object.keys(v).forEach(function (k) { walk(v[k], depth + 1); });\n}\nlet notionError = '';\nlet pages = [];\ntry { pages = $('Lire les prospects déjà dans Notion').all().map(function (i) { return i.json; }); } catch (e) { pages = []; }\nif (pages[0] && pages[0].error) {\n  notionError = typeof pages[0].error === 'string' ? pages[0].error : String(pages[0].error.message || 'Notion injoignable');\n  pages = [];\n}\npages.forEach(function (p) { walk(p, 0); });\nconst domains = Object.keys(known);\nconst count = Math.max(3, Math.min(15, parseInt(pick('count', 'Nombre de prospects'), 10) || 10));\nconst sector = pick('sector', \"Type d'entreprise\");\nconst zone = pick('zone', 'Zone géographique');\nreturn [{ json: {\n  sector: sector,\n  zone: zone,\n  size: pick('size', 'Taille visée') || 'Indifférent',\n  signal: pick('signal', 'Signal recherché'),\n  offer: pick('offer', 'Notre offre en une phrase'),\n  count: count,\n  known_domains: domains,\n  exclude: domains.length ? domains.slice(0, 300).join(', ') : 'aucun',\n  notion_error: notionError,\n  search_label: sector + ', ' + zone\n} }];"},
+      "name": "Préparer la recherche",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [448, 304]
+    },
+    {
+      "parameters": {"modelId":{"__rl":true,"mode":"list","value":"claude-opus-5","cachedResultName":"Claude Opus 5"},"messages":{"values":[{"content":"=Cible : {{ $json.sector }}\nZone : {{ $json.zone }}\nTaille : {{ $json.size }}\nSignal recherché : {{ $json.signal || \"aucun en particulier\" }}\nNotre offre : {{ $json.offer }}\nNombre de prospects voulus : {{ $json.count }}\nDomaines à exclure, déjà dans notre base : {{ $json.exclude }}"}]},"simplify":false,"options":{"system":"Tu es chargé de recherche en prospection B2B. Tu utilises la recherche web pour trouver de vraies entreprises qui correspondent à une cible.\n\nRègles :\n- Uniquement des entreprises trouvées dans tes résultats de recherche, avec leur site officiel. Jamais d'entreprise ni d'URL inventée.\n- Une entreprise par site officiel. Un annuaire, une marketplace, une page LinkedIn ou Pages Jaunes n'est pas un site officiel.\n- N'inclus aucun domaine de la liste à exclure.\n- Signal : un fait vérifiable, daté si possible (offre d'emploi, ouverture, levée de fonds, refonte, nouveau produit), avec l'URL de la page qui le prouve. Sinon, laisse vide.\n- Décideur : seulement si son nom et son rôle sont publiés par l'entreprise elle-même ou par la presse, avec l'URL. Jamais d'e-mail ni de téléphone.\n- Pertinence de 1 à 5 selon l'adéquation avec notre offre.\n- Angle : la première phrase d'un message d'approche, qui s'appuie sur le signal ou sur l'activité réelle, sans flatterie.\n- Mieux vaut moins de prospects que des prospects douteux.\n- Français, sans tiret cadratin ni demi-cadratin.\n\nRéponds uniquement avec un objet JSON valide, sans texte autour ni bloc de code :\n{\"prospects\": [{\"entreprise\": \"\", \"site\": \"https://\", \"ville\": \"\", \"secteur\": \"\", \"taille_estimee\": \"\", \"signal\": \"\", \"source_signal\": \"\", \"decideur\": \"\", \"source_decideur\": \"\", \"pertinence\": 3, \"pourquoi\": \"\", \"angle\": \"\"}]}","webSearch":true,"maxUses":10,"maxTokens":16000}},
+      "name": "Chercher avec Claude",
+      "type": "@n8n/n8n-nodes-langchain.anthropic",
+      "typeVersion": 1,
+      "position": [704, 304],
+      "retryOnFail": true,
+      "maxTries": 2,
+      "waitBetweenTries": 5000,
+      "onError": "continueRegularOutput"
+    },
+    {
+      "parameters": {"jsCode":"const p = $('Préparer la recherche').first().json;\nconst raw = $input.first().json;\nconst HOST_CHARS = new RegExp('^[a-z0-9.-]+$');\n\nfunction claudeText(r) {\n  if (!r || !Array.isArray(r.content)) return '';\n  return r.content.filter(function (b) { return b && b.type === 'text'; }).map(function (b) { return b.text || ''; }).join('');\n}\nfunction claudeError(r) {\n  if (!r || typeof r !== 'object') return 'aucune réponse';\n  if (typeof r.error === 'string') return r.error;\n  if (r.error && r.error.message) return String(r.error.message);\n  if (r.stop_reason === 'refusal') return 'refus du modèle';\n  if (r.stop_reason === 'max_tokens') return 'réponse coupée';\n  if (r.stop_reason === 'pause_turn') return 'recherche interrompue avant la réponse';\n  return '';\n}\nfunction parseJson(t) {\n  const i = t.indexOf('{'), k = t.lastIndexOf('}');\n  if (i < 0 || k <= i) return null;\n  try { return JSON.parse(t.slice(i, k + 1)); } catch (e) { return null; }\n}\nfunction clean(v, max) {\n  const em = String.fromCharCode(8212), en = String.fromCharCode(8211);\n  return String(v || '').split(' ' + em + ' ').join(', ').split(' ' + en + ' ').join(', ').split(em).join(', ').split(en).join('-').trim().slice(0, max || 500);\n}\nfunction hostOf(u) {\n  let s = String(u || '').trim().toLowerCase();\n  if (!s) return '';\n  const q = s.indexOf('://');\n  if (q >= 0) s = s.slice(q + 3);\n  let end = s.length;\n  ['/', '?', '#'].forEach(function (c) { const i = s.indexOf(c); if (i >= 0 && i < end) end = i; });\n  s = s.slice(0, end);\n  const at = s.lastIndexOf('@');\n  if (at >= 0) s = s.slice(at + 1);\n  const colon = s.indexOf(':');\n  if (colon >= 0) s = s.slice(0, colon);\n  while (s.slice(-1) === '.') s = s.slice(0, -1);\n  return s;\n}\nfunction domainOf(u) {\n  const h = hostOf(u);\n  return h.indexOf('www.') === 0 ? h.slice(4) : h;\n}\nfunction isPublicHost(h) {\n  if (!h || h.indexOf('.') < 0 || !HOST_CHARS.test(h)) return false;\n  if (h === 'localhost' || h.slice(-6) === '.local' || h.slice(-9) === '.internal' || h.slice(-4) === '.lan' || h.slice(-5) === '.home') return false;\n  const parts = h.split('.');\n  if (parts.some(function (x) { return x === ''; })) return false;\n  if (parts.every(function (x) { return !isNaN(Number(x)); })) return false;\n  return true;\n}\nfunction safeUrl(u) {\n  const d = domainOf(u);\n  if (!d || !isPublicHost(d)) return '';\n  const s = String(u).trim();\n  return s.indexOf('http') === 0 ? s.slice(0, 500) : 'https://' + s.slice(0, 490);\n}\nconst BLOCKED = ['linkedin.com', 'facebook.com', 'instagram.com', 'x.com', 'twitter.com', 'youtube.com', 'google.com', 'wikipedia.org', 'pagesjaunes.fr', 'societe.com', 'pappers.fr', 'infogreffe.fr', 'verif.com', 'manageo.fr', 'kompass.com', 'indeed.com', 'indeed.fr', 'welcometothejungle.com', 'hellowork.com', 'data.gouv.fr', 'mappy.com', 'tripadvisor.fr', 'yelp.fr'];\nfunction blocked(d) {\n  return BLOCKED.some(function (b) { return d === b || d.slice(-(b.length + 1)) === '.' + b; });\n}\n\nconst known = {};\n(p.known_domains || []).forEach(function (d) { known[d] = true; });\nconst text = claudeText(raw);\nconst data = text ? parseJson(text) : null;\nconst today = DateTime.now().setZone('Europe/Paris').toISODate();\nconst list = data && Array.isArray(data.prospects) ? data.prospects : [];\nconst out = [];\nconst seen = {};\nconst skipped = [];\n\nlist.forEach(function (x) {\n  const name = clean(x && x.entreprise, 150);\n  const d = domainOf(x && x.site);\n  if (!d || !isPublicHost(d)) { skipped.push((name || 'sans nom') + ' : pas de site officiel'); return; }\n  if (blocked(d)) { skipped.push((name || d) + ' : annuaire ou réseau social'); return; }\n  if (known[d]) { skipped.push((name || d) + ' : déjà dans Notion'); return; }\n  if (seen[d]) return;\n  seen[d] = true;\n  const score = Math.max(1, Math.min(5, Math.round(Number(x.pertinence)) || 3));\n  out.push({ json: {\n    kind: 'prospect',\n    entreprise: name || d,\n    site: 'https://' + (x.site && String(x.site).toLowerCase().indexOf('://www.') >= 0 ? 'www.' : '') + d,\n    domain: d,\n    ville: clean(x.ville, 120),\n    secteur: clean(x.secteur, 200),\n    taille: clean(x.taille_estimee, 80),\n    signal: clean(x.signal, 600),\n    source_signal: safeUrl(x.source_signal),\n    decideur: clean(x.decideur, 150),\n    source_decideur: safeUrl(x.source_decideur),\n    pertinence: score,\n    pourquoi: clean(x.pourquoi, 600),\n    angle: clean(x.angle, 400),\n    recherche: p.search_label,\n    ecartes: skipped.slice(),\n    date: today\n  } });\n});\n\nif (!out.length) {\n  const reason = !data\n    ? 'Recherche impossible : ' + (claudeError(raw) || 'réponse illisible') + '.'\n    : 'Aucun nouveau prospect retenu' + (skipped.length ? ' (' + skipped.length + ' écartés : ' + skipped.slice(0, 5).join(' ; ') + ').' : '.');\n  out.push({ json: {\n    kind: 'erreur', entreprise: 'Recherche sans résultat : ' + p.search_label, site: '', domain: '', ville: '', secteur: '', taille: '', signal: '',\n    source_signal: '', decideur: '', source_decideur: '', pertinence: 0,\n    pourquoi: reason + (p.notion_error ? ' Lecture de Notion : ' + p.notion_error : ''),\n    angle: '', recherche: p.search_label, date: today\n  } });\n}\nreturn out.slice(0, p.count);"},
+      "name": "Lister les prospects",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [1008, 256]
+    },
+    {
+      "parameters": {"url":"={{ $json.site }}","sendHeaders":true,"headerParameters":{"parameters":[{"name":"User-Agent","value":"Mozilla/5.0 (compatible; recherche-de-prospects)"},{"name":"Accept-Language","value":"fr-FR,fr;q=0.9"}]},"options":{"redirect":{"redirect":{"maxRedirects":3}},"response":{"response":{"fullResponse":true,"neverError":true,"responseFormat":"text","outputPropertyName":"body"}},"timeout":10000}},
+      "name": "Vérifier le site",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [1248, 304],
+      "onError": "continueRegularOutput"
+    },
+    {
+      "parameters": {"jsCode":"const items = $('Lister les prospects').all();\nconst checks = $input.all();\nfunction errText(e) { return typeof e === 'string' ? e : String((e && e.message) || 'pas de réponse'); }\nreturn items.map(function (it, i) {\n  const x = Object.assign({}, it.json);\n  const c = (checks[i] || {}).json || {};\n  if (x.kind !== 'prospect') {\n    x.statut = 'Erreur';\n    x.details = x.pourquoi;\n    return { json: x };\n  }\n  if (c.error || !c.statusCode) {\n    x.statut = 'Site à vérifier';\n    x.site_check = 'Site injoignable : ' + errText(c.error);\n  } else {\n    const body = String(c.body || '');\n    const m = body.match(new RegExp('<title[^>]*>([^<]*)</title>', 'i'));\n    const rawTitle = m ? m[1].trim().slice(0, 120) : '';\n    const title = rawTitle.indexOf(String.fromCharCode(65533)) >= 0 ? '' : rawTitle;\n    const hay = (title + ' ' + body.slice(0, 30000)).toLowerCase();\n    const words = String(x.entreprise).toLowerCase().split(' ').filter(function (w) { return w.length > 3; });\n    const match = !words.length || words.some(function (w) { return hay.indexOf(w) >= 0; });\n    x.statut = match ? 'À contacter' : 'Site à vérifier';\n    x.site_check = 'Site vérifié (HTTP ' + c.statusCode + ')' + (title ? ', titre : ' + title : '') + (match ? '' : \". Le nom de l'entreprise n'apparaît pas sur la page d'accueil.\");\n  }\n  x.details = [x.site_check, x.taille ? 'Taille estimée : ' + x.taille : '', x.source_decideur ? 'Source du décideur : ' + x.source_decideur : ''].filter(function (s) { return s; }).join(' | ');\n  return { json: x };\n});"},
+      "name": "Noter la vérification",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [1456, 304]
+    },
+    {
+      "parameters": {"resource":"databasePage","dataSourceId":{"__rl":true,"mode":"list","value":""},"title":"={{ $json.entreprise }}","propertiesUi":{"propertyValues":[{"key":"Site|url","urlValue":"={{ $json.site }}","ignoreIfEmpty":true},{"key":"Ville|rich_text","textContent":"={{ $json.ville }}"},{"key":"Secteur|rich_text","textContent":"={{ $json.secteur }}"},{"key":"Signal|rich_text","textContent":"={{ $json.signal }}"},{"key":"Source|url","urlValue":"={{ $json.source_signal }}","ignoreIfEmpty":true},{"key":"Décideur|rich_text","textContent":"={{ $json.decideur }}"},{"key":"Pertinence|number","numberValue":"={{ $json.pertinence }}"},{"key":"Pourquoi|rich_text","textContent":"={{ $json.pourquoi }}"},{"key":"Angle|rich_text","textContent":"={{ $json.angle }}"},{"key":"Statut|select","selectValue":"={{ $json.statut }}"},{"key":"Recherche|rich_text","textContent":"={{ $json.recherche }}"},{"key":"Date de recherche|date","includeTime":false,"date":"={{ $json.date }}"}]},"blockUi":{"blockValues":[{"textContent":"={{ $json.details }}"}]},"options":{}},
+      "name": "Créer la fiche dans Notion",
+      "type": "n8n-nodes-base.notion",
+      "typeVersion": 3,
+      "position": [1664, 304],
+      "retryOnFail": true,
+      "maxTries": 2,
+      "waitBetweenTries": 2000,
+      "onError": "continueRegularOutput"
+    },
+    {
+      "parameters": {"content":"## Recherche de prospects\nDécrivez une cible : Claude cherche sur le web de vraies entreprises, chaque site est vérifié, puis chaque prospect arrive dans Notion avec son signal, sa source et une phrase d'approche.\n\n**Mise en route**\n1. Base Notion avec : Nom (titre), Site et Source (URL), Ville, Secteur, Signal, Décideur, Pourquoi, Angle, Recherche (texte), Pertinence (nombre), Statut (sélection), Date de recherche (date).\n2. Intégration Notion partagée avec la base, clé collée dans n8n.\n3. Choisissez la base dans les deux nœuds Notion, connectez Claude.\n4. Formulaire réservé aux comptes de votre n8n : chaque recherche consomme des crédits Claude.","height":720,"width":656,"color":5},
+      "name": "Note : mise en route",
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [-64, -208]
+    },
+    {
+      "parameters": {"content":"### Recherche\nClaude ne propose que des entreprises trouvées dans ses résultats, avec leur site officiel. Annuaires, réseaux sociaux et domaines déjà dans Notion sont écartés. Aucun e-mail ni téléphone n'est collecté.","height":360,"width":516,"color":4},
+      "name": "Note : recherche",
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [640, 64]
+    },
+    {
+      "parameters": {"content":"### Vérification\nChaque site est appelé. S'il ne répond pas ou ne cite pas l'entreprise, la fiche arrive en « Site à vérifier ». Si la recherche échoue, une fiche « Erreur » explique pourquoi.","height":424,"width":640,"color":7},
+      "name": "Note : vérification",
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [1216, 64]
+    }
+  ],
+  "connections": {
+    "Décrire la cible": {"main":[[{"node":"Lire les prospects déjà dans Notion","type":"main","index":0}]]},
+    "Lire les prospects déjà dans Notion": {"main":[[{"node":"Préparer la recherche","type":"main","index":0}]]},
+    "Préparer la recherche": {"main":[[{"node":"Chercher avec Claude","type":"main","index":0}]]},
+    "Chercher avec Claude": {"main":[[{"node":"Lister les prospects","type":"main","index":0}]]},
+    "Lister les prospects": {"main":[[{"node":"Vérifier le site","type":"main","index":0}]]},
+    "Vérifier le site": {"main":[[{"node":"Noter la vérification","type":"main","index":0}]]},
+    "Noter la vérification": {"main":[[{"node":"Créer la fiche dans Notion","type":"main","index":0}]]}
+  },
+  "settings": {
+    "executionOrder": "v1",
+    "timezone": "Europe/Paris",
+    "binaryMode": "separate"
+  },
+  "pinData": {},
+  "meta": {
+    "templateCredsSetupCompleted": false
+  }
+}
