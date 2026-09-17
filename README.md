@@ -8,7 +8,7 @@ Chaque workflow est livré prêt à importer, documenté, et testé en condition
 
 | Workflow | Ce qu'il fait | Statut |
 |---|---|---|
-| Veille GEO | Suit les citations d'une marque dans ChatGPT, Claude, Perplexity et Gemini, et alerte quand elles changent | À venir |
+| Veille GEO | Mesure comment ChatGPT, Claude, Perplexity et Gemini citent une marque et ses concurrents, compare chaque passage au précédent et range les réponses dans Notion | [Disponible](veille-geo/) |
 | Reporting marketing hebdomadaire | Compare chaque lundi GA4, Search Console et Google Ads à la semaine précédente, fait rédiger la synthèse par Claude et l'envoie par e-mail | À venir |
 | Assistant marketing | Un chat où Claude interroge lui-même GA4 et Search Console, puis répond avec la période et la source de chaque chiffre | À venir |
 | Qualification de leads | Lit le site du prospect, note chaque demande sur 100, crée la fiche HubSpot et alerte le commercial quand le lead est chaud | À venir |
