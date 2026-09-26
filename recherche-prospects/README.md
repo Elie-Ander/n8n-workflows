@@ -2,6 +2,8 @@
 
 Tu décris une cible dans un formulaire. Claude cherche sur le web de vraies entreprises qui y correspondent, chaque site est vérifié, et chaque prospect arrive dans Notion avec un signal vérifiable, sa source et une phrase d'approche.
 
+![Canevas du workflow](apercu.png)
+
 ## Le problème
 
 Trouver des prospects qualifiés prend des heures : chercher, ouvrir chaque site, noter pourquoi l'entreprise vaut le coup, écrire une accroche. Les fichiers achetés vieillissent vite, et une IA sans recherche web invente parfois des entreprises.

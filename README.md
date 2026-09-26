@@ -9,10 +9,11 @@ Chaque workflow est livré prêt à importer, documenté, et testé en condition
 | Workflow | Ce qu'il fait | Statut |
 |---|---|---|
 | Veille GEO | Mesure comment ChatGPT, Claude, Perplexity et Gemini citent une marque et ses concurrents, compare chaque passage au précédent et range les réponses dans Notion | [Disponible](veille-geo/) |
-| Reporting marketing hebdomadaire | Compare chaque lundi GA4, Search Console et Google Ads à la semaine précédente, fait rédiger la synthèse par Claude et l'envoie par e-mail | À venir |
+| Reporting marketing hebdomadaire | Compare chaque lundi GA4, Search Console et Google Ads à la semaine précédente, fait rédiger la synthèse par Claude et l'envoie par e-mail | [Disponible](reporting-marketing-hebdo/) |
 | Assistant marketing | Un chat où Claude interroge lui-même GA4 et Search Console, puis répond avec la période et la source de chaque chiffre | À venir |
-| Qualification de leads | Lit le site du prospect, note chaque demande sur 100, crée la fiche HubSpot et alerte le commercial quand le lead est chaud | À venir |
+| Qualification de leads | Lit le site du prospect, note chaque demande sur 100, crée la fiche HubSpot et alerte le commercial quand le lead est chaud | [Disponible](qualification-leads/) |
 | Recherche de prospects | Trouve de vraies entreprises qui correspondent à une cible, vérifie leur site et range chaque prospect dans Notion avec une phrase d'approche | [Disponible](recherche-prospects/) |
+| Migration de contacts | Déplace des contacts d'un outil à l'autre : champs mis en correspondance, e-mails et téléphones nettoyés, consentements relus, doublons écartés, test à blanc et rapport d'écarts | [Disponible](migration-contacts/) |
 
 ## Structure
 
@@ -37,5 +38,5 @@ Aucun fichier de ce dépôt ne contient de clé d'API, de jeton ou d'identifiant
 
 ## Auteur
 
-**Élie Lissoda**, SEO & GEO et automatisation marketing, Lyon.
+**Élie Lissoda**, SEO & GEO et automatisation marketing, Lyon. Certifié n8n Foundations & Workflow Automation et HubSpot Revenue Operations (2026).
 [LinkedIn](https://www.linkedin.com/in/elie-lissoda) · [koudujob.com](https://koudujob.com)

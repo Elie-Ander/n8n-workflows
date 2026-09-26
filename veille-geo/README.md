@@ -2,6 +2,8 @@
 
 Tu poses les questions de tes clients à ChatGPT, Claude, Perplexity et Gemini, recherche web activée. La veille mesure si ta marque et tes concurrents sont cités, dans quel ordre et avec quelles sources, puis compare chaque passage au précédent. Chaque réponse arrive dans Notion.
 
+![Canevas du workflow](apercu.png)
+
 ## Le problème
 
 Quand un client demande conseil à une IA, elle ne lui donne pas une page de liens : elle nomme quelques marques. Une marque absente de ces réponses sort du choix du client, et les outils SEO classiques ne le mesurent pas. Les réponses changent aussi d'un jour à l'autre : un seul test ne suffit pas.
