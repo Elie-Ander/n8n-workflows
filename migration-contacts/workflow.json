@@ -1,0 +1,501 @@
+{
+  "name": "Migration de contacts entre deux outils",
+  "nodes": [
+    {
+      "parameters": {},
+      "id": "907d0424-ba06-4e2e-9cae-1456a2185523",
+      "name": "Lancer la migration",
+      "type": "n8n-nodes-base.manualTrigger",
+      "typeVersion": 1,
+      "position": [
+        0,
+        192
+      ]
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "mode",
+              "name": "mode",
+              "value": "test",
+              "type": "string"
+            },
+            {
+              "id": "mapping",
+              "name": "mapping",
+              "value": "{\"external_id\":\"external_id\",\"prenom\":\"first_name\",\"nom\":\"last_name\",\"email\":\"email\",\"telephone\":\"phone\",\"pays\":\"country\",\"optin_email\":\"email_subscribed\",\"optin_sms\":\"sms_subscribed\",\"langue\":\"language\",\"date_inscription\":\"created_at\",\"segment\":\"segment\"}",
+              "type": "string"
+            },
+            {
+              "id": "obligatoires",
+              "name": "champs_obligatoires",
+              "value": "email,nom",
+              "type": "string"
+            },
+            {
+              "id": "pays",
+              "name": "pays_defaut",
+              "value": "FR",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "f046ff15-31ad-416d-b78d-7a2b272fb799",
+      "name": "Configuration",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        224,
+        192
+      ]
+    },
+    {
+      "parameters": {
+        "operation": "get",
+        "dataTableId": {
+          "__rl": true,
+          "mode": "list",
+          "value": "",
+          "cachedResultName": "Migration contacts source"
+        },
+        "limit": 500
+      },
+      "id": "07412206-ad1e-4b48-a72c-bbeabd65143c",
+      "name": "Lire la source",
+      "type": "n8n-nodes-base.dataTable",
+      "typeVersion": 1.1,
+      "position": [
+        448,
+        192
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "const cfg = $('Configuration').first().json;\nconst mapping = JSON.parse(cfg.mapping || '{}');\nconst obligatoires = String(cfg.champs_obligatoires || 'email').split(',').map(s => s.trim()).filter(Boolean);\nconst paysDefaut = String(cfg.pays_defaut || 'FR').toUpperCase();\nconst mode = String(cfg.mode || 'test').toLowerCase();\nconst indicatifs = { FR: '33', BE: '32', CH: '41', LU: '352', ES: '34', IT: '39', DE: '49' };\nconst runId = 'mig-' + $now.toFormat('yyyyLLdd-HHmmss');\nconst systeme = ['id', 'createdAt', 'updatedAt'];\n\nfunction emailValide(v) { return /^[^\\s@]+@[^\\s@]+\\.[A-Za-z]{2,}$/.test(v); }\n\nfunction consentement(v) {\n  const s = String(v == null ? '' : v).trim().toLowerCase();\n  if (['oui', 'yes', 'true', '1', 'y', 'o'].includes(s)) return { valeur: true, connu: true };\n  if (['non', 'no', 'false', '0', 'n'].includes(s)) return { valeur: false, connu: true };\n  return { valeur: false, connu: false };\n}\n\nfunction telephone(v, pays) {\n  let s = String(v == null ? '' : v).replace(/[^\\d+]/g, '');\n  if (!s) return '';\n  if (s.startsWith('00')) s = '+' + s.slice(2);\n  if (s.startsWith('0')) s = '+' + (indicatifs[pays] || indicatifs[paysDefaut] || '33') + s.slice(1);\n  if (!s.startsWith('+')) s = '+' + s;\n  return s;\n}\n\nfunction dateIso(v) {\n  const s = String(v == null ? '' : v).trim();\n  if (!s) return { valeur: null, ok: false };\n  const d = new Date(s);\n  if (isNaN(d.getTime())) return { valeur: null, ok: false };\n  return { valeur: d.toISOString(), ok: true };\n}\n\nconst vus = new Map();\nconst nonMappes = new Set();\nconst sortie = [];\n\nfor (const item of $input.all()) {\n  const src = item.json;\n  const cible = {};\n  for (const [de, vers] of Object.entries(mapping)) cible[vers] = src[de];\n  for (const cle of Object.keys(src)) {\n    if (!systeme.includes(cle) && !(cle in mapping)) nonMappes.add(cle);\n  }\n\n  const raisons = [];\n  const email = String(cible.email == null ? '' : cible.email).trim().toLowerCase();\n  cible.email = email;\n  if (!email) raisons.push('email absent');\n  else if (!emailValide(email)) raisons.push('email invalide');\n\n  const pays = String(cible.country == null ? '' : cible.country).trim().toUpperCase() || paysDefaut;\n  cible.country = pays;\n  cible.phone = telephone(cible.phone, pays);\n\n  const optinEmail = consentement(cible.email_subscribed);\n  const optinSms = consentement(cible.sms_subscribed);\n  cible.email_subscribed = optinEmail.valeur;\n  cible.sms_subscribed = optinSms.valeur;\n  if (!optinEmail.connu) raisons.push('consentement e-mail non renseigne, passe a non');\n\n  const d = dateIso(cible.created_at);\n  cible.created_at = d.valeur;\n  if (!d.ok) raisons.push('date d inscription illisible');\n\n  for (const champ of obligatoires) {\n    const vers = mapping[champ] || champ;\n    const val = cible[vers];\n    if (val === undefined || val === null || String(val).trim() === '') raisons.push('champ obligatoire vide : ' + champ);\n  }\n\n  let doublon = false;\n  if (email) {\n    if (vus.has(email)) { doublon = true; raisons.push('doublon de ' + vus.get(email)); }\n    else vus.set(email, src.external_id || email);\n  }\n\n  const bloquant = raisons.some(r => /email absent|email invalide|champ obligatoire|doublon/.test(r));\n\n  sortie.push({\n    json: Object.assign({}, cible, {\n      run_id: runId,\n      mode: mode,\n      statut: bloquant ? 'rejete' : 'valide',\n      doublon: doublon,\n      raisons: raisons.join(' ; '),\n      source_id: src.external_id || '',\n      champs_non_mappes: ''\n    })\n  });\n}\n\nconst liste = Array.from(nonMappes).sort().join(', ');\nfor (const s of sortie) s.json.champs_non_mappes = liste;\nreturn sortie;"
+      },
+      "id": "c703bfe3-d270-4b79-8c97-511c076190df",
+      "name": "Preparer et controler",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        672,
+        192
+      ]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 1
+          },
+          "conditions": [
+            {
+              "leftValue": "={{ $json.statut }}",
+              "operator": {
+                "type": "string",
+                "operation": "equals"
+              },
+              "rightValue": "valide"
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "23a01d09-cdc5-4477-aa08-300a6ae83a38",
+      "name": "Contacts valides",
+      "type": "n8n-nodes-base.filter",
+      "typeVersion": 2.2,
+      "position": [
+        896,
+        96
+      ]
+    },
+    {
+      "parameters": {
+        "operation": "upsert",
+        "dataTableId": {
+          "__rl": true,
+          "mode": "list",
+          "value": "",
+          "cachedResultName": "Migration contacts cible"
+        },
+        "matchType": "allConditions",
+        "filters": {
+          "conditions": [
+            {
+              "keyName": "email",
+              "keyValue": "={{ $json.email }}"
+            }
+          ]
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "external_id": "={{ $json.external_id }}",
+            "first_name": "={{ $json.first_name }}",
+            "last_name": "={{ $json.last_name }}",
+            "email": "={{ $json.email }}",
+            "phone": "={{ $json.phone }}",
+            "country": "={{ $json.country }}",
+            "email_subscribed": "={{ $json.email_subscribed }}",
+            "sms_subscribed": "={{ $json.sms_subscribed }}",
+            "language": "={{ $json.language }}",
+            "created_at": "={{ $json.created_at }}",
+            "segment": "={{ $json.segment }}",
+            "run_id": "={{ $json.run_id }}"
+          },
+          "matchingColumns": [],
+          "schema": [
+            {
+              "id": "external_id",
+              "displayName": "external_id",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "first_name",
+              "displayName": "first_name",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "last_name",
+              "displayName": "last_name",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "email",
+              "displayName": "email",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "phone",
+              "displayName": "phone",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "country",
+              "displayName": "country",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "email_subscribed",
+              "displayName": "email_subscribed",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "boolean",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "sms_subscribed",
+              "displayName": "sms_subscribed",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "boolean",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "language",
+              "displayName": "language",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "created_at",
+              "displayName": "created_at",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "dateTime",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "segment",
+              "displayName": "segment",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "run_id",
+              "displayName": "run_id",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        },
+        "options": {
+          "dryRun": "={{ $('Configuration').first().json.mode !== 'reel' }}"
+        }
+      },
+      "id": "1574a67c-6079-42be-aca7-e0f646c9c456",
+      "name": "Ecrire dans la cible",
+      "type": "n8n-nodes-base.dataTable",
+      "typeVersion": 1.1,
+      "position": [
+        1344,
+        0
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "const items = $('Preparer et controler').all().map(i => i.json);\nconst cfg = $('Configuration').first().json;\nconst total = items.length;\nconst valides = items.filter(i => i.statut === 'valide').length;\nconst rejetes = total - valides;\nconst doublons = items.filter(i => i.doublon === true).length;\nconst details = items\n  .filter(i => i.statut === 'rejete')\n  .slice(0, 15)\n  .map(i => (i.source_id || i.email || 'sans identifiant') + ' : ' + i.raisons)\n  .join('\\n');\n\nreturn [{\n  json: {\n    run_id: items.length ? items[0].run_id : 'mig-' + $now.toFormat('yyyyLLdd-HHmmss'),\n    run_at: $now.toISO(),\n    mode: String(cfg.mode || 'test').toLowerCase(),\n    total: total,\n    valides: valides,\n    rejetes: rejetes,\n    doublons: doublons,\n    champs_non_mappes: items.length ? items[0].champs_non_mappes : '',\n    details: details\n  }\n}];"
+      },
+      "id": "1dcf7c75-8851-49a3-8183-bfab22fdfb51",
+      "name": "Construire le rapport",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        896,
+        288
+      ],
+      "executeOnce": true
+    },
+    {
+      "parameters": {
+        "dataTableId": {
+          "__rl": true,
+          "mode": "list",
+          "value": "",
+          "cachedResultName": "Migration rapport"
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "run_id": "={{ $json.run_id }}",
+            "run_at": "={{ $json.run_at }}",
+            "mode": "={{ $json.mode }}",
+            "total": "={{ $json.total }}",
+            "valides": "={{ $json.valides }}",
+            "rejetes": "={{ $json.rejetes }}",
+            "doublons": "={{ $json.doublons }}",
+            "champs_non_mappes": "={{ $json.champs_non_mappes }}",
+            "details": "={{ $json.details }}"
+          },
+          "schema": [
+            {
+              "id": "run_id",
+              "displayName": "run_id",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "run_at",
+              "displayName": "run_at",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "dateTime",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "mode",
+              "displayName": "mode",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "total",
+              "displayName": "total",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "number",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "valides",
+              "displayName": "valides",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "number",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "rejetes",
+              "displayName": "rejetes",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "number",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "doublons",
+              "displayName": "doublons",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "number",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "champs_non_mappes",
+              "displayName": "champs_non_mappes",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "details",
+              "displayName": "details",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "bbdcacfa-97e8-4b63-9b2b-a9acd3d2dd5d",
+      "name": "Ecrire le rapport",
+      "type": "n8n-nodes-base.dataTable",
+      "typeVersion": 1.1,
+      "position": [
+        1120,
+        288
+      ]
+    }
+  ],
+  "connections": {
+    "Lancer la migration": {
+      "main": [
+        [
+          {
+            "node": "Configuration",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Configuration": {
+      "main": [
+        [
+          {
+            "node": "Lire la source",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Lire la source": {
+      "main": [
+        [
+          {
+            "node": "Preparer et controler",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Preparer et controler": {
+      "main": [
+        [
+          {
+            "node": "Contacts valides",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Construire le rapport",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Construire le rapport": {
+      "main": [
+        [
+          {
+            "node": "Ecrire le rapport",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Contacts valides": {
+      "main": [
+        [
+          {
+            "node": "Ecrire dans la cible",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1"
+  }
+}

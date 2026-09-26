@@ -1,0 +1,988 @@
+{
+  "name": "Reporting marketing hebdomadaire",
+  "nodes": [
+    {
+      "id": "6b0269bf-bca6-419a-ad8e-8c204934d018",
+      "name": "Chaque lundi à 8 h",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.2,
+      "position": [
+        0,
+        120
+      ],
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "field": "weeks",
+              "triggerAtDay": [
+                1
+              ],
+              "triggerAtHour": 8
+            }
+          ]
+        }
+      }
+    },
+    {
+      "id": "a0ee36f4-c536-48fa-bcbb-cf7e8fc31e19",
+      "name": "Configuration",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        240,
+        220
+      ],
+      "parameters": {
+        "mode": "manual",
+        "includeOtherFields": false,
+        "assignments": {
+          "assignments": [
+            {
+              "id": "cfg-site",
+              "name": "site_name",
+              "value": "mamarque.fr",
+              "type": "string"
+            },
+            {
+              "id": "cfg-ga4",
+              "name": "ga4_property_id",
+              "value": "123456789",
+              "type": "string"
+            },
+            {
+              "id": "cfg-gsc",
+              "name": "gsc_property",
+              "value": "sc-domain:mamarque.fr",
+              "type": "string"
+            },
+            {
+              "id": "cfg-lag",
+              "name": "gsc_lag_days",
+              "value": 3,
+              "type": "number"
+            },
+            {
+              "id": "cfg-ads",
+              "name": "google_ads_active",
+              "value": false,
+              "type": "boolean"
+            },
+            {
+              "id": "cfg-ads-mgr",
+              "name": "ads_manager_customer_id",
+              "value": "1234567890",
+              "type": "string"
+            },
+            {
+              "id": "cfg-ads-client",
+              "name": "ads_customer_id",
+              "value": "1234567890",
+              "type": "string"
+            },
+            {
+              "id": "cfg-mail",
+              "name": "report_email",
+              "value": "vous@exemple.fr",
+              "type": "string"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "id": "c95863e4-90e0-4920-9454-4d1af67c29f1",
+      "name": "Lancer maintenant",
+      "type": "n8n-nodes-base.manualTrigger",
+      "typeVersion": 1,
+      "position": [
+        0,
+        320
+      ],
+      "parameters": {}
+    },
+    {
+      "id": "bb376c48-f0a0-4171-89a3-43a323cf978c",
+      "name": "Calculer les périodes",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        460,
+        220
+      ],
+      "parameters": {
+        "mode": "runOnceForAllItems",
+        "language": "javaScript",
+        "jsCode": "const cfg = $('Configuration').first().json;\nconst today = DateTime.now().setZone('Europe/Paris').startOf('day');\nfunction d(x) { return x.toFormat('yyyy-MM-dd'); }\nconst end = today.minus({ days: 1 });\nconst start = end.minus({ days: 6 });\nconst prevEnd = start.minus({ days: 1 });\nconst prevStart = prevEnd.minus({ days: 6 });\nconst lag = Math.max(2, Number(cfg.gsc_lag_days) || 3);\nconst gEnd = today.minus({ days: lag });\nconst gStart = gEnd.minus({ days: 6 });\nconst gPrevEnd = gStart.minus({ days: 1 });\nconst gPrevStart = gPrevEnd.minus({ days: 6 });\nconst ranges = [\n  { startDate: d(start), endDate: d(end), name: 'current' },\n  { startDate: d(prevStart), endDate: d(prevEnd), name: 'previous' }\n];\nreturn [{ json: {\n  run_id: $execution.id + '-' + today.toFormat('yyyyLLdd'),\n  current_start: d(start), current_end: d(end),\n  previous_start: d(prevStart), previous_end: d(prevEnd),\n  gsc_current_start: d(gStart), gsc_current_end: d(gEnd),\n  gsc_previous_start: d(gPrevStart), gsc_previous_end: d(gPrevEnd),\n  ga4_property_id: String(cfg.ga4_property_id || '').split('properties/').join('').trim(),\n  gsc_site_path: encodeURIComponent(String(cfg.gsc_property || '').trim()),\n  ga4_traffic_body: { dateRanges: ranges, metrics: [{ name: 'sessions' }, { name: 'totalUsers' }, { name: 'engagedSessions' }, { name: 'keyEvents' }] },\n  ga4_channels_body: { dateRanges: ranges, dimensions: [{ name: 'sessionDefaultChannelGroup' }], metrics: [{ name: 'sessions' }, { name: 'keyEvents' }], limit: 50 },\n  gsc_totals_body: { startDate: d(gPrevStart), endDate: d(gEnd), dimensions: ['date'], type: 'web', rowLimit: 100 },\n  gsc_queries_body: { startDate: d(gStart), endDate: d(gEnd), dimensions: ['query'], type: 'web', rowLimit: 250 },\n  gsc_queries_prev_body: { startDate: d(gPrevStart), endDate: d(gPrevEnd), dimensions: ['query'], type: 'web', rowLimit: 250 }\n} }];"
+      }
+    },
+    {
+      "id": "7e21eb54-7fe7-451c-ac1c-dd04a566d1d3",
+      "name": "GA4 : trafic sur deux semaines",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        700,
+        220
+      ],
+      "parameters": {
+        "method": "POST",
+        "url": "=https://analyticsdata.googleapis.com/v1beta/properties/{{ $(\"Calculer les périodes\").first().json.ga4_property_id }}:runReport",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "googleOAuth2Api",
+        "sendBody": true,
+        "contentType": "json",
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify($(\"Calculer les périodes\").first().json.ga4_traffic_body) }}",
+        "options": {
+          "timeout": 30000
+        }
+      },
+      "executeOnce": true,
+      "retryOnFail": true,
+      "maxTries": 2,
+      "waitBetweenTries": 3000,
+      "onError": "continueRegularOutput"
+    },
+    {
+      "id": "b917f7a6-2577-47f7-9fba-26119cc5b114",
+      "name": "GA4 : canaux",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        920,
+        220
+      ],
+      "parameters": {
+        "method": "POST",
+        "url": "=https://analyticsdata.googleapis.com/v1beta/properties/{{ $(\"Calculer les périodes\").first().json.ga4_property_id }}:runReport",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "googleOAuth2Api",
+        "sendBody": true,
+        "contentType": "json",
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify($(\"Calculer les périodes\").first().json.ga4_channels_body) }}",
+        "options": {
+          "timeout": 30000
+        }
+      },
+      "executeOnce": true,
+      "retryOnFail": true,
+      "maxTries": 2,
+      "waitBetweenTries": 3000,
+      "onError": "continueRegularOutput"
+    },
+    {
+      "id": "2513efb5-0e52-4617-96e9-8b817eb0ad24",
+      "name": "Search Console : totaux",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        1140,
+        220
+      ],
+      "parameters": {
+        "method": "POST",
+        "url": "=https://searchconsole.googleapis.com/webmasters/v3/sites/{{ $(\"Calculer les périodes\").first().json.gsc_site_path }}/searchAnalytics/query",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "googleOAuth2Api",
+        "sendBody": true,
+        "contentType": "json",
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify($(\"Calculer les périodes\").first().json.gsc_totals_body) }}",
+        "options": {
+          "timeout": 30000
+        }
+      },
+      "executeOnce": true,
+      "retryOnFail": true,
+      "maxTries": 2,
+      "waitBetweenTries": 3000,
+      "onError": "continueRegularOutput"
+    },
+    {
+      "id": "d916142a-5745-4acf-bdb9-fef2f93edc42",
+      "name": "Search Console : requêtes",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        1360,
+        220
+      ],
+      "parameters": {
+        "method": "POST",
+        "url": "=https://searchconsole.googleapis.com/webmasters/v3/sites/{{ $(\"Calculer les périodes\").first().json.gsc_site_path }}/searchAnalytics/query",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "googleOAuth2Api",
+        "sendBody": true,
+        "contentType": "json",
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify($(\"Calculer les périodes\").first().json.gsc_queries_body) }}",
+        "options": {
+          "timeout": 30000
+        }
+      },
+      "executeOnce": true,
+      "retryOnFail": true,
+      "maxTries": 2,
+      "waitBetweenTries": 3000,
+      "onError": "continueRegularOutput"
+    },
+    {
+      "id": "454839d9-2098-4169-88cd-b0d86a971e17",
+      "name": "Search Console : requêtes semaine précédente",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        1580,
+        220
+      ],
+      "parameters": {
+        "method": "POST",
+        "url": "=https://searchconsole.googleapis.com/webmasters/v3/sites/{{ $(\"Calculer les périodes\").first().json.gsc_site_path }}/searchAnalytics/query",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "googleOAuth2Api",
+        "sendBody": true,
+        "contentType": "json",
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify($(\"Calculer les périodes\").first().json.gsc_queries_prev_body) }}",
+        "options": {
+          "timeout": 30000
+        }
+      },
+      "executeOnce": true,
+      "retryOnFail": true,
+      "maxTries": 2,
+      "waitBetweenTries": 3000,
+      "onError": "continueRegularOutput"
+    },
+    {
+      "id": "696d6ef7-8547-405f-8671-5185fda25b01",
+      "name": "Google Ads activé ?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        1800,
+        220
+      ],
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "loose"
+          },
+          "conditions": [
+            {
+              "leftValue": "={{ $(\"Configuration\").first().json.google_ads_active }}",
+              "rightValue": "",
+              "operator": {
+                "type": "boolean",
+                "operation": "true",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "executeOnce": true
+    },
+    {
+      "id": "f4d7f781-0069-47d5-8eff-e311ab0bc8e8",
+      "name": "Google Ads : 7 jours",
+      "type": "n8n-nodes-base.googleAds",
+      "typeVersion": 1,
+      "position": [
+        2020,
+        80
+      ],
+      "parameters": {
+        "resource": "campaign",
+        "operation": "getAll",
+        "managerCustomerId": "={{ $(\"Configuration\").first().json.ads_manager_customer_id }}",
+        "clientCustomerId": "={{ $(\"Configuration\").first().json.ads_customer_id }}",
+        "additionalOptions": {
+          "dateRange": "LAST_7_DAYS",
+          "campaignStatus": "all"
+        }
+      },
+      "executeOnce": true,
+      "alwaysOutputData": true,
+      "onError": "continueRegularOutput"
+    },
+    {
+      "id": "c5ca2310-9432-488f-8ad6-2749d5e094fa",
+      "name": "Google Ads : 14 jours",
+      "type": "n8n-nodes-base.googleAds",
+      "typeVersion": 1,
+      "position": [
+        2240,
+        80
+      ],
+      "parameters": {
+        "resource": "campaign",
+        "operation": "getAll",
+        "managerCustomerId": "={{ $(\"Configuration\").first().json.ads_manager_customer_id }}",
+        "clientCustomerId": "={{ $(\"Configuration\").first().json.ads_customer_id }}",
+        "additionalOptions": {
+          "dateRange": "LAST_14_DAYS",
+          "campaignStatus": "all"
+        }
+      },
+      "executeOnce": true,
+      "alwaysOutputData": true,
+      "onError": "continueRegularOutput"
+    },
+    {
+      "id": "ec66c717-65bd-45b4-adee-ab9280766010",
+      "name": "Lire les semaines précédentes",
+      "type": "n8n-nodes-base.dataTable",
+      "typeVersion": 1.1,
+      "position": [
+        2460,
+        220
+      ],
+      "parameters": {
+        "resource": "row",
+        "operation": "get",
+        "dataTableId": {
+          "__rl": true,
+          "mode": "list",
+          "value": "",
+          "cachedResultName": "Reporting marketing historique"
+        },
+        "returnAll": false,
+        "limit": 6,
+        "orderBy": true,
+        "orderByColumn": "period_end",
+        "orderByDirection": "DESC"
+      },
+      "executeOnce": true,
+      "alwaysOutputData": true,
+      "onError": "continueRegularOutput"
+    },
+    {
+      "id": "be2aeb60-1ab5-4e45-a3bc-7fd0c8d1efed",
+      "name": "Assembler les indicateurs",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        2680,
+        220
+      ],
+      "parameters": {
+        "mode": "runOnceForAllItems",
+        "language": "javaScript",
+        "jsCode": "const p = $('Calculer les périodes').first().json;\nconst cfg = $('Configuration').first().json;\n\nfunction safeAll(name) {\n  try { return $(name).all().map(function (i) { return i.json; }); } catch (e) { return null; }\n}\nfunction errorOf(items) {\n  if (items === null) return 'Étape non exécutée';\n  const j = items[0] || {};\n  if (!j.error) return '';\n  if (typeof j.error === 'string') return j.error.slice(0, 300);\n  return String(j.error.message || j.error.description || JSON.stringify(j.error)).slice(0, 300);\n}\nfunction num(v) { const n = Number(v); return isFinite(n) ? n : 0; }\nfunction round(n, dec) { const f = Math.pow(10, dec); return Math.round(n * f) / f; }\nfunction change(cur, prev) {\n  if (cur === null || cur === undefined || !prev) return null;\n  return round(((cur - prev) / prev) * 100, 1);\n}\nfunction ga4ByRange(resp) {\n  const out = {};\n  if (!resp || !resp.metricHeaders) return out;\n  const mh = resp.metricHeaders.map(function (h) { return h.name; });\n  const dh = (resp.dimensionHeaders || []).map(function (h) { return h.name; });\n  const di = dh.indexOf('dateRange');\n  (resp.rows || []).forEach(function (r) {\n    const dims = (r.dimensionValues || []).map(function (x) { return x.value; });\n    const range = di >= 0 ? dims[di] : 'current';\n    const key = dims.filter(function (v, k) { return k !== di; }).join(' | ');\n    const m = {};\n    mh.forEach(function (h, k) { m[h] = num((r.metricValues[k] || {}).value); });\n    if (!out[range]) out[range] = [];\n    out[range].push({ key: key, m: m });\n  });\n  return out;\n}\nfunction gscAgg(rows, from, to) {\n  let clicks = 0, impressions = 0, posWeighted = 0;\n  rows.forEach(function (r) {\n    const day = r.keys[0];\n    if (day >= from && day <= to) {\n      clicks += num(r.clicks);\n      impressions += num(r.impressions);\n      posWeighted += num(r.position) * num(r.impressions);\n    }\n  });\n  return { clicks: clicks, impressions: impressions, ctr: impressions ? round(clicks / impressions * 100, 2) : null, position: impressions ? round(posWeighted / impressions, 1) : null };\n}\nfunction queryMap(items) {\n  if (!items || errorOf(items)) return null;\n  const m = {};\n  ((items[0] && items[0].rows) || []).forEach(function (r) {\n    m[r.keys[0]] = { clicks: num(r.clicks), impressions: num(r.impressions), position: round(num(r.position), 1) };\n  });\n  return m;\n}\nfunction sumAds(items) {\n  let cost = 0, inter = 0, impr = 0;\n  const camps = [];\n  items.forEach(function (c) {\n    if (!c || (c.costMicros === undefined && c.impressions === undefined)) return;\n    const co = num(c.costMicros) / 1000000;\n    if (!co && !num(c.impressions)) return;\n    cost += co; inter += num(c.interactions); impr += num(c.impressions);\n    camps.push({ campagne: c.name, statut: c.status, cout: round(co, 2), interactions: num(c.interactions) });\n  });\n  return { cost: round(cost, 2), interactions: inter, impressions: impr, camps: camps };\n}\n\nconst unavailable = [];\n\nlet ga4 = { status: 'ok' };\nconst gaTraffic = safeAll('GA4 : trafic sur deux semaines');\nconst gaErr = errorOf(gaTraffic);\nif (gaErr) {\n  ga4 = { status: 'erreur', error: gaErr };\n  unavailable.push({ source: 'GA4', error: gaErr });\n} else {\n  const r = ga4ByRange(gaTraffic[0]);\n  const cur = ((r.current || [])[0] || { m: {} }).m;\n  const prev = ((r.previous || [])[0] || { m: {} }).m;\n  ga4.sessions = num(cur.sessions); ga4.sessions_prev = num(prev.sessions);\n  ga4.sessions_change = change(ga4.sessions, ga4.sessions_prev);\n  ga4.users = num(cur.totalUsers); ga4.users_prev = num(prev.totalUsers);\n  ga4.users_change = change(ga4.users, ga4.users_prev);\n  ga4.engagement_rate = ga4.sessions ? round(num(cur.engagedSessions) / ga4.sessions * 100, 1) : null;\n  ga4.engagement_rate_prev = ga4.sessions_prev ? round(num(prev.engagedSessions) / ga4.sessions_prev * 100, 1) : null;\n  ga4.key_events = num(cur.keyEvents); ga4.key_events_prev = num(prev.keyEvents);\n  ga4.key_events_change = change(ga4.key_events, ga4.key_events_prev);\n  const gaChannels = safeAll('GA4 : canaux');\n  const chErr = errorOf(gaChannels);\n  if (chErr) {\n    ga4.channels_error = chErr;\n  } else {\n    const rc = ga4ByRange(gaChannels[0]);\n    const prevMap = {};\n    (rc.previous || []).forEach(function (x) { prevMap[x.key] = x.m.sessions; });\n    ga4.canaux = (rc.current || []).map(function (x) {\n      return { canal: x.key, sessions: x.m.sessions, sessions_prev: num(prevMap[x.key]), variation: change(x.m.sessions, num(prevMap[x.key])), conversions_cles: x.m.keyEvents };\n    }).sort(function (a, b) { return b.sessions - a.sessions; }).slice(0, 8);\n  }\n}\n\nlet gsc = { status: 'ok', fenetre: p.gsc_current_start + ' au ' + p.gsc_current_end };\nconst gscTotals = safeAll('Search Console : totaux');\nconst gscErr = errorOf(gscTotals);\nif (gscErr) {\n  gsc = { status: 'erreur', error: gscErr };\n  unavailable.push({ source: 'Search Console', error: gscErr });\n} else {\n  const rows = (gscTotals[0] && gscTotals[0].rows) || [];\n  const cur = gscAgg(rows, p.gsc_current_start, p.gsc_current_end);\n  const prev = gscAgg(rows, p.gsc_previous_start, p.gsc_previous_end);\n  gsc.clicks = cur.clicks; gsc.clicks_prev = prev.clicks; gsc.clicks_change = change(cur.clicks, prev.clicks);\n  gsc.impressions = cur.impressions; gsc.impressions_prev = prev.impressions; gsc.impressions_change = change(cur.impressions, prev.impressions);\n  gsc.ctr = cur.ctr; gsc.ctr_prev = prev.ctr;\n  gsc.position = cur.position; gsc.position_prev = prev.position;\n  const qc = queryMap(safeAll('Search Console : requêtes'));\n  const qp = queryMap(safeAll('Search Console : requêtes semaine précédente'));\n  if (qc) {\n    gsc.top_requetes = Object.keys(qc).map(function (q) {\n      return { requete: q, clics: qc[q].clicks, impressions: qc[q].impressions, position: qc[q].position, clics_prev: qp && qp[q] ? qp[q].clicks : null };\n    }).sort(function (a, b) { return b.clics - a.clics || b.impressions - a.impressions; }).slice(0, 10);\n  }\n  if (qc && qp) {\n    const all = {};\n    Object.keys(qc).forEach(function (q) { all[q] = true; });\n    Object.keys(qp).forEach(function (q) { all[q] = true; });\n    const deltas = Object.keys(all).map(function (q) {\n      const c = qc[q] ? qc[q].clicks : 0;\n      const pv = qp[q] ? qp[q].clicks : 0;\n      return { requete: q, clics: c, clics_prev: pv, ecart: c - pv, position: qc[q] ? qc[q].position : null, position_prev: qp[q] ? qp[q].position : null };\n    });\n    gsc.gagnantes = deltas.filter(function (x) { return x.ecart > 0; }).sort(function (a, b) { return b.ecart - a.ecart; }).slice(0, 5);\n    gsc.perdantes = deltas.filter(function (x) { return x.ecart < 0; }).sort(function (a, b) { return a.ecart - b.ecart; }).slice(0, 5);\n  }\n}\n\nlet ads = { status: 'non utilisé' };\nif (cfg.google_ads_active) {\n  const a7 = safeAll('Google Ads : 7 jours');\n  const a14 = safeAll('Google Ads : 14 jours');\n  const adsErr = errorOf(a7) || errorOf(a14);\n  if (adsErr) {\n    ads = { status: 'erreur', error: adsErr };\n    unavailable.push({ source: 'Google Ads', error: adsErr });\n  } else {\n    const s7 = sumAds(a7);\n    const s14 = sumAds(a14);\n    ads = {\n      status: 'ok',\n      cost: s7.cost, cost_prev: round(s14.cost - s7.cost, 2), cost_change: change(s7.cost, round(s14.cost - s7.cost, 2)),\n      interactions: s7.interactions, interactions_prev: s14.interactions - s7.interactions,\n      interactions_change: change(s7.interactions, s14.interactions - s7.interactions),\n      campagnes: s7.camps.sort(function (a, b) { return b.cout - a.cout; }).slice(0, 5)\n    };\n  }\n}\n\nconst history = (safeAll('Lire les semaines précédentes') || []).filter(function (h) { return h && h.period_end; }).map(function (h) {\n  return { semaine_du: String(h.period_start).slice(0, 10), sessions: h.sessions, clics_search_console: h.gsc_clicks, depense_ads: h.ads_cost };\n});\n\nconst hasData = ga4.status === 'ok' || gsc.status === 'ok' || ads.status === 'ok';\n\nreturn [{ json: {\n  run_id: p.run_id,\n  current_start: p.current_start, current_end: p.current_end,\n  gsc_current_start: p.gsc_current_start, gsc_current_end: p.gsc_current_end,\n  has_data: hasData,\n  errors_html: unavailable.map(function (u) { return '<li><strong>' + u.source + '</strong> : ' + String(u.error).split('<').join('&lt;') + '</li>'; }).join(''),\n  facts: {\n    site: cfg.site_name,\n    semaine: p.current_start + ' au ' + p.current_end,\n    semaine_precedente: p.previous_start + ' au ' + p.previous_end,\n    ga4: ga4,\n    search_console: gsc,\n    google_ads: ads,\n    historique: history,\n    sources_indisponibles: unavailable\n  }\n} }];"
+      }
+    },
+    {
+      "id": "718d8f3e-1517-44f4-951c-abff7db8728c",
+      "name": "Des données à analyser ?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        2900,
+        220
+      ],
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "loose"
+          },
+          "conditions": [
+            {
+              "leftValue": "={{ $json.has_data }}",
+              "rightValue": "",
+              "operator": {
+                "type": "boolean",
+                "operation": "true",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      }
+    },
+    {
+      "id": "77a3bbfa-5134-4cad-baf0-3f2886ec8eba",
+      "name": "Rédiger la synthèse",
+      "type": "@n8n/n8n-nodes-langchain.anthropic",
+      "typeVersion": 1,
+      "position": [
+        3120,
+        120
+      ],
+      "parameters": {
+        "resource": "text",
+        "operation": "message",
+        "modelId": {
+          "__rl": true,
+          "mode": "list",
+          "value": "claude-opus-5",
+          "cachedResultName": "Claude Opus 5"
+        },
+        "messages": {
+          "values": [
+            {
+              "role": "user",
+              "content": "=Données de la semaine, au format JSON :\n{{ JSON.stringify($json.facts) }}"
+            }
+          ]
+        },
+        "simplify": false,
+        "options": {
+          "system": "Tu es analyste marketing senior. Tu rédiges le point hebdomadaire d'un site pour son responsable marketing, qui a deux minutes pour le lire.\n\nRègles :\n- Utilise uniquement les chiffres du JSON fourni. N'invente et n'extrapole aucun chiffre.\n- Nomme la source de chaque chiffre : GA4, Search Console ou Google Ads.\n- Une variation inférieure à 5 %, ou calculée sur moins de 100 sessions ou 50 clics, n'est pas un signal : dis-le au lieu de la commenter.\n- Sépare les faits des hypothèses : une explication que les données ne prouvent pas commence par « Hypothèse : ».\n- Search Console couvre une fenêtre décalée de quelques jours par rapport à GA4 : ne compare pas directement leurs chiffres.\n- Si une source est indisponible, signale-le une fois dans les alertes et n'en tire aucune conclusion.\n- Chaque action découle d'un constat, commence par un verbe et tient en une phrase.\n- Français clair, sans jargon inutile, sans tiret cadratin ni demi-cadratin.\n\nRéponds uniquement avec un objet JSON valide, sans texte autour ni bloc de code :\n{\"titre\": \"une phrase qui résume la semaine\", \"faits\": [\"3 à 5 constats chiffrés\"], \"alertes\": [\"0 à 3 points de vigilance\"], \"actions\": [\"3 actions concrètes pour cette semaine\"]}",
+          "maxTokens": 16000
+        }
+      },
+      "retryOnFail": true,
+      "maxTries": 3,
+      "waitBetweenTries": 5000,
+      "onError": "continueRegularOutput"
+    },
+    {
+      "id": "e06dc54a-05dd-48e5-93ee-f3325ebcc587",
+      "name": "Préparer le rapport",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        3340,
+        120
+      ],
+      "parameters": {
+        "mode": "runOnceForAllItems",
+        "language": "javaScript",
+        "jsCode": "const a = $('Assembler les indicateurs').first().json;\nconst cfg = $('Configuration').first().json;\nconst raw = $input.first().json;\nconst f = a.facts;\nconst g = f.ga4 || {};\nconst s = f.search_console || {};\nconst ads = f.google_ads || {};\n\nconst TD = 'padding:8px 12px;border-top:1px solid #e6e8ec;text-align:right;';\nconst TDL = 'padding:8px 12px;border-top:1px solid #e6e8ec;';\nconst MUTED = '#5b6472';\n\nfunction esc(v) { return String(v === null || v === undefined ? '' : v).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;'); }\nfunction clean(v) {\n  const em = String.fromCharCode(8212), en = String.fromCharCode(8211);\n  return String(v || '').split(' ' + em + ' ').join(', ').split(' ' + en + ' ').join(', ').split(em).join(', ').split(en).join('-');\n}\nfunction fmt(v, dec) {\n  if (v === null || v === undefined || v === '' || isNaN(Number(v))) return 'n.d.';\n  return Number(v).toLocaleString('fr-FR', { maximumFractionDigits: dec || 0 });\n}\nfunction day(iso) { return DateTime.fromISO(iso).setLocale('fr').toFormat('d LLL'); }\nfunction tone(delta, lowerIsBetter, neutral) {\n  if (delta === null || delta === undefined || delta === 0 || neutral) return MUTED;\n  return (lowerIsBetter ? delta < 0 : delta > 0) ? '#1a7f4b' : '#b42318';\n}\nfunction pctCell(delta, neutral) {\n  if (delta === null || delta === undefined) return '<td style=\"' + TD + 'color:' + MUTED + '\">n.d.</td>';\n  return '<td style=\"' + TD + 'font-weight:600;color:' + tone(delta, false, neutral) + '\">' + (delta > 0 ? '+' : '') + fmt(delta, 1) + ' %</td>';\n}\nfunction diffCell(cur, prev, unit, lowerIsBetter) {\n  if (cur === null || cur === undefined || prev === null || prev === undefined) return '<td style=\"' + TD + 'color:' + MUTED + '\">n.d.</td>';\n  const delta = Math.round((cur - prev) * 10) / 10;\n  return '<td style=\"' + TD + 'font-weight:600;color:' + tone(delta, lowerIsBetter) + '\">' + (delta > 0 ? '+' : '') + fmt(delta, 1) + ' ' + unit + '</td>';\n}\nfunction line(label, cur, prev, cell) {\n  return '<tr><td style=\"' + TDL + '\">' + esc(label) + '</td><td style=\"' + TD + 'font-weight:600\">' + cur + '</td><td style=\"' + TD + 'color:' + MUTED + '\">' + prev + '</td>' + cell + '</tr>';\n}\nfunction section(label) {\n  return '<tr><td colspan=\"4\" style=\"padding:18px 12px 6px;font-size:12px;letter-spacing:.04em;text-transform:uppercase;color:' + MUTED + ';font-weight:700\">' + esc(label) + '</td></tr>';\n}\nfunction bullets(title, list) {\n  if (!Array.isArray(list) || !list.length) return '';\n  return '<h3 style=\"font-size:15px;margin:18px 0 6px\">' + esc(title) + '</h3><ul style=\"margin:0;padding-left:20px;line-height:1.55\">' + list.map(function (x) { return '<li>' + esc(clean(x)) + '</li>'; }).join('') + '</ul>';\n}\nfunction queryTable(title, list) {\n  if (!Array.isArray(list) || !list.length) return '';\n  let h = '<h3 style=\"font-size:15px;margin:24px 0 8px\">' + esc(title) + '</h3><table style=\"width:100%;border-collapse:collapse;font-size:14px\">';\n  h += '<tr style=\"color:' + MUTED + ';font-size:12px\"><td style=\"padding:6px 12px\">Requête</td><td style=\"padding:6px 12px;text-align:right\">Clics</td><td style=\"padding:6px 12px;text-align:right\">Avant</td><td style=\"padding:6px 12px;text-align:right\">Position</td></tr>';\n  list.forEach(function (q) {\n    h += '<tr><td style=\"' + TDL + '\">' + esc(q.requete) + '</td><td style=\"' + TD + 'font-weight:600\">' + fmt(q.clics) + '</td><td style=\"' + TD + 'color:' + MUTED + '\">' + fmt(q.clics_prev) + '</td><td style=\"' + TD + '\">' + fmt(q.position, 1) + '</td></tr>';\n  });\n  return h + '</table>';\n}\nfunction claudeText(r) {\n  if (!r || !Array.isArray(r.content)) return '';\n  return r.content.filter(function (b) { return b && b.type === 'text'; }).map(function (b) { return b.text || ''; }).join('');\n}\nfunction claudeError(r) {\n  if (!r || typeof r !== 'object') return 'aucune réponse';\n  if (typeof r.error === 'string') return r.error;\n  if (r.error && r.error.message) return String(r.error.message);\n  if (r.stop_reason === 'refusal') return 'refus du modèle';\n  if (r.stop_reason === 'max_tokens') return 'réponse coupée';\n  return '';\n}\nfunction parseJson(t) {\n  const i = t.indexOf('{'), j = t.lastIndexOf('}');\n  if (i < 0 || j <= i) return null;\n  try { return JSON.parse(t.slice(i, j + 1)); } catch (e) { return null; }\n}\n\nconst text = claudeText(raw);\nconst parsed = text ? parseJson(text) : null;\nlet synth = '';\nif (parsed) {\n  synth = '<p style=\"font-size:17px;font-weight:600;margin:0 0 8px\">' + esc(clean(parsed.titre)) + '</p>' +\n    bullets('Ce qui a bougé', parsed.faits) + bullets('Points de vigilance', parsed.alertes) + bullets('À faire cette semaine', parsed.actions);\n} else if (text) {\n  synth = '<p style=\"white-space:pre-wrap;line-height:1.55\">' + esc(clean(text)) + '</p>';\n} else {\n  synth = '<p style=\"padding:12px 14px;background:#fdecea;border-radius:6px\">Synthèse IA indisponible (' + esc(claudeError(raw) || 'réponse vide') + '). Les chiffres ci-dessous restent fiables.</p>';\n}\n\nlet rows = '';\nif (g.status === 'ok') {\n  rows += section('Trafic du site, GA4');\n  rows += line('Sessions', fmt(g.sessions), fmt(g.sessions_prev), pctCell(g.sessions_change));\n  rows += line('Utilisateurs', fmt(g.users), fmt(g.users_prev), pctCell(g.users_change));\n  rows += line(\"Taux d'engagement\", fmt(g.engagement_rate, 1) + ' %', fmt(g.engagement_rate_prev, 1) + ' %', diffCell(g.engagement_rate, g.engagement_rate_prev, 'pt', false));\n  rows += line('Conversions clés', fmt(g.key_events), fmt(g.key_events_prev), pctCell(g.key_events_change));\n}\nif (s.status === 'ok') {\n  rows += section('Recherche Google, Search Console du ' + day(a.gsc_current_start) + ' au ' + day(a.gsc_current_end));\n  rows += line('Clics', fmt(s.clicks), fmt(s.clicks_prev), pctCell(s.clicks_change));\n  rows += line('Impressions', fmt(s.impressions), fmt(s.impressions_prev), pctCell(s.impressions_change));\n  rows += line('CTR', fmt(s.ctr, 2) + ' %', fmt(s.ctr_prev, 2) + ' %', diffCell(s.ctr, s.ctr_prev, 'pt', false));\n  rows += line('Position moyenne', fmt(s.position, 1), fmt(s.position_prev, 1), diffCell(s.position, s.position_prev, 'place', true));\n}\nif (ads.status === 'ok') {\n  rows += section('Google Ads');\n  rows += line('Dépense (devise du compte)', fmt(ads.cost, 2), fmt(ads.cost_prev, 2), pctCell(ads.cost_change, true));\n  rows += line('Interactions', fmt(ads.interactions), fmt(ads.interactions_prev), pctCell(ads.interactions_change));\n}\n\nlet missing = '';\nif (f.sources_indisponibles.length) {\n  missing = '<div style=\"margin-top:20px;padding:12px 14px;background:#fff4e5;border-radius:6px;font-size:13px;line-height:1.5\"><strong>Sources indisponibles cette semaine</strong><br>' +\n    f.sources_indisponibles.map(function (u) { return esc(u.source) + ' : ' + esc(u.error); }).join('<br>') + '</div>';\n}\n\nconst html = '<div style=\"font-family:-apple-system,Segoe UI,Roboto,Helvetica,Arial,sans-serif;color:#1d2430;max-width:640px;margin:0 auto\">' +\n  '<p style=\"font-size:12px;letter-spacing:.06em;text-transform:uppercase;color:' + MUTED + ';margin:0\">Reporting marketing hebdomadaire</p>' +\n  '<h2 style=\"font-size:22px;margin:4px 0 2px\">' + esc(cfg.site_name) + '</h2>' +\n  '<p style=\"color:' + MUTED + ';margin:0 0 20px\">Semaine du ' + day(a.current_start) + ' au ' + day(a.current_end) + ', comparée à la précédente</p>' +\n  synth +\n  '<table style=\"width:100%;border-collapse:collapse;font-size:14px;margin-top:22px\"><tr style=\"color:' + MUTED + ';font-size:12px\"><td style=\"padding:6px 12px\"></td><td style=\"padding:6px 12px;text-align:right\">Cette semaine</td><td style=\"padding:6px 12px;text-align:right\">Précédente</td><td style=\"padding:6px 12px;text-align:right\">Variation</td></tr>' + rows + '</table>' +\n  queryTable('Requêtes qui gagnent des clics', s.gagnantes) +\n  queryTable('Requêtes qui perdent des clics', s.perdantes) +\n  missing +\n  \"<p style=\\\"font-size:12px;color:\" + MUTED + \";margin-top:28px;line-height:1.5\\\">Search Console s'arrête quelques jours avant aujourd'hui : ses données arrivent avec 2 à 3 jours de retard. Comparaison des requêtes sur les 250 premières de chaque semaine.</p></div>\";\n\nconst headline = parsed && parsed.titre ? clean(parsed.titre) : 'les chiffres de la semaine';\nconst subject = 'Reporting ' + cfg.site_name + ', semaine du ' + day(a.current_start) + ' : ' + (headline.length > 90 ? headline.slice(0, 87) + '...' : headline);\n\nfunction orNull(ok, v) { return ok && v !== undefined ? v : null; }\nconst row = {\n  run_id: a.run_id,\n  period_start: DateTime.fromISO(a.current_start, { zone: 'Europe/Paris' }).toISO(),\n  period_end: DateTime.fromISO(a.current_end, { zone: 'Europe/Paris' }).toISO(),\n  sessions: orNull(g.status === 'ok', g.sessions),\n  users: orNull(g.status === 'ok', g.users),\n  key_events: orNull(g.status === 'ok', g.key_events),\n  engagement_rate: orNull(g.status === 'ok', g.engagement_rate),\n  sessions_change: orNull(g.status === 'ok', g.sessions_change),\n  gsc_clicks: orNull(s.status === 'ok', s.clicks),\n  gsc_impressions: orNull(s.status === 'ok', s.impressions),\n  gsc_ctr: orNull(s.status === 'ok', s.ctr),\n  gsc_position: orNull(s.status === 'ok', s.position),\n  gsc_clicks_change: orNull(s.status === 'ok', s.clicks_change),\n  ads_cost: orNull(ads.status === 'ok', ads.cost),\n  ads_clicks: orNull(ads.status === 'ok', ads.interactions),\n  top_queries: JSON.stringify((s.top_requetes || []).slice(0, 10)),\n  summary: parsed ? clean(parsed.titre) + ' ' + (parsed.faits || []).map(clean).join(' ') : ''\n};\n\nreturn [{ json: { subject: subject, html: html, synthese_ok: !!parsed, row: row } }];"
+      }
+    },
+    {
+      "id": "ce656fde-0e13-4b01-a039-1b31251f6cbc",
+      "name": "Alerter : aucune source",
+      "type": "n8n-nodes-base.gmail",
+      "typeVersion": 2.1,
+      "position": [
+        3340,
+        380
+      ],
+      "parameters": {
+        "resource": "message",
+        "operation": "send",
+        "sendTo": "={{ $(\"Configuration\").first().json.report_email }}",
+        "subject": "=Reporting {{ $('Configuration').first().json.site_name }} non envoyé : aucune source n'a répondu",
+        "emailType": "html",
+        "message": "=<p>Le reporting de la semaine n'est pas parti : aucune source de données n'a répondu. Claude n'a pas été appelé.</p><ul>{{ $json.errors_html }}</ul><p>Vérifiez les connexions Google dans n8n, puis relancez le workflow.</p>",
+        "options": {
+          "appendAttribution": false,
+          "senderName": "Reporting marketing"
+        }
+      }
+    },
+    {
+      "id": "7e9e8824-9db5-403f-a052-eb4a21c0fada",
+      "name": "Enregistrer la semaine",
+      "type": "n8n-nodes-base.dataTable",
+      "typeVersion": 1.1,
+      "position": [
+        3560,
+        20
+      ],
+      "parameters": {
+        "resource": "row",
+        "operation": "insert",
+        "dataTableId": {
+          "__rl": true,
+          "mode": "list",
+          "value": "",
+          "cachedResultName": "Reporting marketing historique"
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "run_id": "={{ $json.row.run_id }}",
+            "period_start": "={{ $json.row.period_start }}",
+            "period_end": "={{ $json.row.period_end }}",
+            "sessions": "={{ $json.row.sessions }}",
+            "users": "={{ $json.row.users }}",
+            "key_events": "={{ $json.row.key_events }}",
+            "engagement_rate": "={{ $json.row.engagement_rate }}",
+            "sessions_change": "={{ $json.row.sessions_change }}",
+            "gsc_clicks": "={{ $json.row.gsc_clicks }}",
+            "gsc_impressions": "={{ $json.row.gsc_impressions }}",
+            "gsc_ctr": "={{ $json.row.gsc_ctr }}",
+            "gsc_position": "={{ $json.row.gsc_position }}",
+            "gsc_clicks_change": "={{ $json.row.gsc_clicks_change }}",
+            "ads_cost": "={{ $json.row.ads_cost }}",
+            "ads_clicks": "={{ $json.row.ads_clicks }}",
+            "top_queries": "={{ $json.row.top_queries }}",
+            "summary": "={{ $json.row.summary }}"
+          },
+          "matchingColumns": [],
+          "schema": [
+            {
+              "id": "run_id",
+              "displayName": "run_id",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "period_start",
+              "displayName": "period_start",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "dateTime",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "period_end",
+              "displayName": "period_end",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "dateTime",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "sessions",
+              "displayName": "sessions",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "number",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "users",
+              "displayName": "users",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "number",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "key_events",
+              "displayName": "key_events",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "number",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "engagement_rate",
+              "displayName": "engagement_rate",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "number",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "sessions_change",
+              "displayName": "sessions_change",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "number",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "gsc_clicks",
+              "displayName": "gsc_clicks",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "number",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "gsc_impressions",
+              "displayName": "gsc_impressions",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "number",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "gsc_ctr",
+              "displayName": "gsc_ctr",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "number",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "gsc_position",
+              "displayName": "gsc_position",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "number",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "gsc_clicks_change",
+              "displayName": "gsc_clicks_change",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "number",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "ads_cost",
+              "displayName": "ads_cost",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "number",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "ads_clicks",
+              "displayName": "ads_clicks",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "number",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "top_queries",
+              "displayName": "top_queries",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "summary",
+              "displayName": "summary",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            }
+          ]
+        },
+        "options": {}
+      },
+      "onError": "continueRegularOutput"
+    },
+    {
+      "id": "5812304a-2f18-468f-961a-5e664c7e7e81",
+      "name": "Envoyer le rapport",
+      "type": "n8n-nodes-base.gmail",
+      "typeVersion": 2.1,
+      "position": [
+        3560,
+        220
+      ],
+      "parameters": {
+        "resource": "message",
+        "operation": "send",
+        "sendTo": "={{ $(\"Configuration\").first().json.report_email }}",
+        "subject": "={{ $json.subject }}",
+        "emailType": "html",
+        "message": "={{ $json.html }}",
+        "options": {
+          "appendAttribution": false,
+          "senderName": "Reporting marketing"
+        }
+      },
+      "retryOnFail": true,
+      "maxTries": 2,
+      "waitBetweenTries": 5000
+    },
+    {
+      "id": "81814292-14b0-468c-990f-1c0cbddc0d4c",
+      "name": "Note : mise en route",
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        -60,
+        -340
+      ],
+      "parameters": {
+        "content": "## Reporting marketing hebdomadaire\nChaque lundi à 8 h : GA4, Search Console et Google Ads comparés à la semaine précédente, synthèse par Claude, rapport par e-mail.\n\n**Mise en route**\n1. Google Cloud : activez Google Analytics Data API et Search Console API.\n2. n8n : connexion **Google OAuth2 API** avec les scopes `analytics.readonly` et `webmasters.readonly`.\n3. Remplissez **Configuration**. Sans Google Ads, laissez `google_ads_active` sur false.\n4. Connectez Claude et Gmail.",
+        "color": 5,
+        "width": 640,
+        "height": 790
+      }
+    },
+    {
+      "id": "64e47c56-aa89-4111-bffa-5585da20f8ff",
+      "name": "Note : collecte",
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        640,
+        -140
+      ],
+      "parameters": {
+        "content": "### Collecte\nUne seule requête GA4 porte les deux semaines. Search Console s'arrête 3 jours avant aujourd'hui, ses données arrivent en retard. Une source en échec ne bloque pas le rapport : elle y est signalée.",
+        "color": 7,
+        "width": 1740,
+        "height": 500
+      }
+    },
+    {
+      "id": "1cd0d1ee-595e-4e31-b060-20d201b21e3b",
+      "name": "Note : analyse",
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        2420,
+        -140
+      ],
+      "parameters": {
+        "content": "### Analyse\nLes calculs sont faits en code. Claude ne reçoit que des chiffres vérifiés et n'a pas le droit d'en inventer. Chaque semaine est gardée dans la table **Reporting marketing historique**, que l'assistant marketing lit aussi.",
+        "color": 4,
+        "width": 840,
+        "height": 500
+      }
+    },
+    {
+      "id": "5b76ecda-b97a-4fbf-94ca-45fe90fe3b0f",
+      "name": "Note : envoi",
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        3300,
+        -200
+      ],
+      "parameters": {
+        "content": "### Envoi\nClaude indisponible : le rapport part avec les chiffres seuls. Aucune source disponible : pas d'appel à Claude, une alerte part à la place.",
+        "color": 6,
+        "width": 420,
+        "height": 700
+      }
+    }
+  ],
+  "connections": {
+    "Chaque lundi à 8 h": {
+      "main": [
+        [
+          {
+            "node": "Configuration",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Configuration": {
+      "main": [
+        [
+          {
+            "node": "Calculer les périodes",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Lancer maintenant": {
+      "main": [
+        [
+          {
+            "node": "Configuration",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Calculer les périodes": {
+      "main": [
+        [
+          {
+            "node": "GA4 : trafic sur deux semaines",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "GA4 : trafic sur deux semaines": {
+      "main": [
+        [
+          {
+            "node": "GA4 : canaux",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "GA4 : canaux": {
+      "main": [
+        [
+          {
+            "node": "Search Console : totaux",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Search Console : totaux": {
+      "main": [
+        [
+          {
+            "node": "Search Console : requêtes",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Search Console : requêtes": {
+      "main": [
+        [
+          {
+            "node": "Search Console : requêtes semaine précédente",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Search Console : requêtes semaine précédente": {
+      "main": [
+        [
+          {
+            "node": "Google Ads activé ?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Google Ads activé ?": {
+      "main": [
+        [
+          {
+            "node": "Google Ads : 7 jours",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Lire les semaines précédentes",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Google Ads : 7 jours": {
+      "main": [
+        [
+          {
+            "node": "Google Ads : 14 jours",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Google Ads : 14 jours": {
+      "main": [
+        [
+          {
+            "node": "Lire les semaines précédentes",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Lire les semaines précédentes": {
+      "main": [
+        [
+          {
+            "node": "Assembler les indicateurs",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Assembler les indicateurs": {
+      "main": [
+        [
+          {
+            "node": "Des données à analyser ?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Des données à analyser ?": {
+      "main": [
+        [
+          {
+            "node": "Rédiger la synthèse",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Alerter : aucune source",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Rédiger la synthèse": {
+      "main": [
+        [
+          {
+            "node": "Préparer le rapport",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Préparer le rapport": {
+      "main": [
+        [
+          {
+            "node": "Enregistrer la semaine",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Envoyer le rapport",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1"
+  }
+}
