@@ -204,13 +204,13 @@
       ],
       "parameters": {
         "method": "POST",
-        "url": "https://api.perplexity.ai/chat/completions",
+        "url": "https://api.perplexity.ai/v1/agent",
         "authentication": "predefinedCredentialType",
         "nodeCredentialType": "perplexityApi",
         "sendBody": true,
         "contentType": "json",
         "specifyBody": "json",
-        "jsonBody": "={{ JSON.stringify({ model: \"sonar\", search_recency_filter: \"month\", messages: [ { role: \"system\", content: \"Tu es analyste commercial. Réponds en français, uniquement avec des faits datés et sourcés, sans spéculation.\" }, { role: \"user\", content: \"Quels signaux d'achat récents, sur les 30 derniers jours, pour l'entreprise \" + $json.entreprise + \" (\" + $json.domaine + \") : levée de fonds, recrutements commerciaux ou marketing, nouveau dirigeant, ouverture de bureau ou de pays, lancement de produit, rachat ? Donne chaque fait avec sa date et sa source. S'il n'y a rien, dis-le simplement.\" } ] }) }}",
+        "jsonBody": "={{ JSON.stringify({ preset: \"fast\", tools: [ { type: \"web_search\", filters: { search_recency_filter: \"month\" } } ], instructions: \"Tu es analyste commercial. Réponds en français, uniquement avec des faits datés et sourcés, sans spéculation.\", input: \"Quels signaux d'achat récents, sur les 30 derniers jours, pour l'entreprise \" + $json.entreprise + \" (\" + $json.domaine + \") : levée de fonds, recrutements commerciaux ou marketing, nouveau dirigeant, ouverture de bureau ou de pays, lancement de produit, rachat ? Donne chaque fait avec sa date et sa source. S'il n'y a rien, dis-le simplement.\" }) }}",
         "options": {
           "timeout": 60000,
           "batching": {
@@ -235,7 +235,7 @@
       "parameters": {
         "mode": "runOnceForEachItem",
         "language": "javaScript",
-        "jsCode": "const compte = $('Une ligne par compte').item.json;\nconst cfg = $('Configuration').first().json;\nconst texte = (($json.choices || [])[0] || {}).message ? $json.choices[0].message.content : '';\nconst sources = Array.isArray($json.citations) ? $json.citations.slice(0, 8) : [];\nreturn { json: { ...compte, faits: texte || 'Aucun fait trouvé.', sources: sources.join('\\n'), consigne: 'Entreprise : ' + compte.entreprise + ' (' + compte.domaine + ')\\nNotre offre : ' + cfg.offre + '\\n\\nFaits trouvés :\\n' + (texte || 'Aucun fait trouvé.') + '\\n\\nSources :\\n' + sources.join('\\n') } };"
+        "jsCode": "const compte = $('Une ligne par compte').item.json;\nconst cfg = $('Configuration').first().json;\n// API Agent de Perplexity : une liste typée, le texte dans \"message\", les sources dans \"search_results\"\nconst sorties = Array.isArray($json.output) ? $json.output : [];\nconst texte = ($json.output_text || sorties.filter(o => o.type === 'message').flatMap(o => o.content || []).map(c => c.text || '').join('\\n')).trim();\nconst urls = sorties.filter(o => o.type === 'search_results').flatMap(o => o.results || []).concat(Array.isArray($json.search_results) ? $json.search_results : []).map(r => r.url).filter(Boolean);\nconst sources = [...new Set(urls)].slice(0, 8);\nreturn { json: { ...compte, faits: texte || 'Aucun fait trouvé.', sources: sources.join('\\n'), consigne: 'Entreprise : ' + compte.entreprise + ' (' + compte.domaine + ')\\nNotre offre : ' + cfg.offre + '\\n\\nFaits trouvés :\\n' + (texte || 'Aucun fait trouvé.') + '\\n\\nSources :\\n' + sources.join('\\n') } };"
       }
     },
     {
