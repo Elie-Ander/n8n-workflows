@@ -25,7 +25,7 @@ Je l'ai testé sur 12 contacts volontairement mal saisis : 8 migrés, 4 rejetés
 
 2. Dans Configuration, réglez `mode` (test ou reel), `mapping`, `champs_obligatoires` et `pays_defaut`.
 3. Importez `workflow.json` et choisissez vos tables. Aucun identifiant externe n'est nécessaire.
-4. Avec de vrais outils, remplacez « Lire la source » et « Ecrire dans la cible » par les nœuds de vos outils (HubSpot, Mailchimp, Brevo, fichier CSV). Les contrôles restent les mêmes.
+4. Avec de vrais outils, remplacez « Lire la source » et « Écrire dans la cible » par les nœuds de vos outils (HubSpot, Mailchimp, Brevo, fichier CSV). Les contrôles restent les mêmes.
 5. Lancez d'abord en mode test, lisez le rapport, puis passez en `reel`.
 
 ---
