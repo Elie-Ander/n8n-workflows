@@ -1,0 +1,403 @@
+{
+  "name": "Audit SEO et GEO d'une page",
+  "nodes": [
+    {
+      "id": "5bdaa819-9cbe-425c-ace3-2a64e2ef7234",
+      "name": "Présentation",
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        -60,
+        -551
+      ],
+      "parameters": {
+        "content": "## Audit SEO et GEO d'une page\nPar **Elie LISSODA**, automatisation marketing · [elie.koudujob.com](https://elie.koudujob.com)\n\nUne page peut bien se classer sur Google et rester absente des réponses de ChatGPT. Cet audit la note sur 100 et dit quoi corriger en premier pour être trouvé et cité.\n\nPour le lancer : connectez Claude, créez la table « Audits SEO et GEO », puis ouvrez le formulaire.\n\nUne question ? Je suis disponible sur [elie.koudujob.com](https://elie.koudujob.com) 😉",
+        "color": 2,
+        "width": 600,
+        "height": 361
+      }
+    },
+    {
+      "id": "a6488cbf-6a23-4d69-8ca8-7644f3a4adbf",
+      "name": "Étape 1",
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        -60,
+        -125
+      ],
+      "parameters": {
+        "content": "### 1. La page à auditer\nUne adresse et un nom de marque suffisent.",
+        "color": 7,
+        "width": 460,
+        "height": 305
+      }
+    },
+    {
+      "id": "9202d049-08a9-4dc4-8313-91d8e04e2f3c",
+      "name": "Étape 2",
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        420,
+        -150
+      ],
+      "parameters": {
+        "content": "### 2. Lire et mesurer\nLa page et son fichier llms.txt sont lus, puis notés : 40 points pour le SEO, 30 pour la lecture par les IA, 30 pour les signaux GEO.",
+        "color": 5,
+        "width": 700,
+        "height": 330
+      }
+    },
+    {
+      "id": "af85189f-f6d2-4711-8a05-293d1a913ea2",
+      "name": "Étape 3",
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        1140,
+        -150
+      ],
+      "parameters": {
+        "content": "### 3. Conseiller\nClaude part des constats et propose 3 actions rapides, puis 2 chantiers de fond.",
+        "color": 6,
+        "width": 580,
+        "height": 330
+      }
+    },
+    {
+      "id": "0ab0ac1e-33ce-40b7-ba50-93299d6a4a33",
+      "name": "Étape 4",
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        1740,
+        -150
+      ],
+      "parameters": {
+        "content": "### 4. Garder l'audit\nChaque audit reste dans la table pour suivre la page dans le temps.",
+        "color": 4,
+        "width": 460,
+        "height": 330
+      }
+    },
+    {
+      "parameters": {
+        "formTitle": "Audit SEO et GEO d’une page",
+        "formDescription": "Recevez une note sur 100 et les actions à mener pour être cité par Google et par les IA.",
+        "formFields": {
+          "values": [
+            {
+              "fieldLabel": "Adresse de la page",
+              "fieldName": "url",
+              "placeholder": "https://exemple.fr/page",
+              "requiredField": true
+            },
+            {
+              "fieldLabel": "Nom de la marque",
+              "fieldName": "marque",
+              "placeholder": "Exemple"
+            }
+          ]
+        },
+        "responseMode": "lastNode",
+        "options": {
+          "appendAttribution": false,
+          "buttonLabel": "Lancer l audit"
+        }
+      },
+      "id": "79d0039a-898f-405d-9c53-92b0b1ffb5d4",
+      "name": "Demande d’audit",
+      "type": "n8n-nodes-base.formTrigger",
+      "typeVersion": 2.6,
+      "position": [
+        0,
+        0
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "const src = $input.first().json;\nlet url = String(src.url || src['Adresse de la page'] || '').trim();\nconst marque = String(src.marque || src['Nom de la marque'] || '').trim();\nif (url && !/^https?:\\/\\//i.test(url)) url = 'https://' + url;\nlet origine = '';\ntry { origine = new URL(url).origin; } catch (e) { origine = ''; }\nreturn [{ json: { url: url, marque: marque, origine: origine, llms_url: origine ? origine + '/llms.txt' : '' } }];"
+      },
+      "id": "69090f01-bf38-4316-b392-19ae3b7011e3",
+      "name": "Préparer la demande",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        240,
+        0
+      ]
+    },
+    {
+      "parameters": {
+        "url": "={{ $json.url }}",
+        "options": {
+          "response": {
+            "response": {
+              "neverError": true,
+              "responseFormat": "text"
+            }
+          },
+          "timeout": 20000
+        }
+      },
+      "id": "29fe3aa6-9b71-4558-829c-1dabac6c81d9",
+      "name": "Récupérer la page",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        480,
+        0
+      ],
+      "onError": "continueRegularOutput"
+    },
+    {
+      "parameters": {
+        "url": "={{ $('Préparer la demande').first().json.llms_url }}",
+        "options": {
+          "response": {
+            "response": {
+              "neverError": true,
+              "responseFormat": "text"
+            }
+          },
+          "timeout": 10000
+        }
+      },
+      "id": "a997c069-d1df-4e7a-909c-9cb96aa0599c",
+      "name": "Chercher llms.txt",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        720,
+        0
+      ],
+      "onError": "continueRegularOutput"
+    },
+    {
+      "parameters": {
+        "jsCode": "const cfg = $('Préparer la demande').first().json;\nconst pageItem = $('Récupérer la page').first().json;\nconst llmsItem = $('Chercher llms.txt').first().json;\nconst html = String(pageItem.data || pageItem.body || '');\nconst llmsTexte = String(llmsItem.data || llmsItem.body || '');\nconst llmsTrouve = llmsTexte.length > 20 && !/<html/i.test(llmsTexte);\n\nif (!html || html.length < 200) {\n  return [{ json: Object.assign({}, cfg, { erreur: 'page inaccessible ou vide', score: 0, score_seo: 0, score_ia: 0, score_geo: 0, constats: 'La page n a pas pu etre lue.', llms_txt: llmsTrouve, titre: '', meta_description: '', h1: '', mots: 0, donnees_structurees: '', h2: 0, h3: 0, listes: 0, tableaux: 0, chiffres: 0, mentions_marque: 0, images: 0, images_sans_alt: 0, liens_internes: 0, liens_externes: 0, og: false }) }];\n}\n\nconst nettoye = html\n  .replace(/<script[\\s\\S]*?<\\/script>/gi, ' ')\n  .replace(/<style[\\s\\S]*?<\\/style>/gi, ' ');\nconst texte = nettoye.replace(/<[^>]+>/g, ' ').replace(/&nbsp;/g, ' ').replace(/\\s+/g, ' ').trim();\nconst mots = texte ? texte.split(' ').length : 0;\n\nfunction premier(re) { const m = html.match(re); return m ? m[1].replace(/\\s+/g, ' ').trim() : ''; }\nconst titre = premier(/<title[^>]*>([\\s\\S]*?)<\\/title>/i);\nconst langue = premier(/<html[^>]*\\slang=[\"']([^\"']+)[\"']/i);\nconst canonical = /<link[^>]+rel=[\"']canonical[\"']/i.test(html);\n\nlet metaDescription = '';\nconst metas = html.match(/<meta[^>]+>/gi) || [];\nlet ogTitre = false, ogDescription = false, robotsNoindex = false;\nfor (const m of metas) {\n  const nom = (m.match(/\\s(?:name|property)=[\"']([^\"']+)[\"']/i) || [null, ''])[1].toLowerCase();\n  const contenu = (m.match(/\\scontent=[\"']([^\"']*)[\"']/i) || [null, ''])[1];\n  if (nom === 'description') metaDescription = contenu.replace(/\\s+/g, ' ').trim();\n  if (nom === 'og:title') ogTitre = true;\n  if (nom === 'og:description') ogDescription = true;\n  if (nom === 'robots' && /noindex/i.test(contenu)) robotsNoindex = true;\n}\n\nconst h1s = (html.match(/<h1[^>]*>([\\s\\S]*?)<\\/h1>/gi) || []).map(h => h.replace(/<[^>]+>/g, ' ').replace(/\\s+/g, ' ').trim());\nconst h2s = (html.match(/<h2[^>]*>([\\s\\S]*?)<\\/h2>/gi) || []).map(h => h.replace(/<[^>]+>/g, ' ').replace(/\\s+/g, ' ').trim());\nconst h3s = (html.match(/<h3[^>]*>([\\s\\S]*?)<\\/h3>/gi) || []).length;\nconst titresQuestions = h2s.concat(h1s).filter(t => t.includes('?')).length;\n\nconst images = (html.match(/<img[^>]*>/gi) || []);\nconst imagesSansAlt = images.filter(i => !/\\salt=[\"'][^\"']+[\"']/i.test(i)).length;\n\nlet hote = '';\ntry { hote = new URL(cfg.url).host; } catch (e) { hote = ''; }\nconst liens = (html.match(/<a[^>]+href=[\"']([^\"']+)[\"']/gi) || []).map(a => (a.match(/href=[\"']([^\"']+)[\"']/i) || [null, ''])[1]);\nconst liensInternes = liens.filter(h => h.startsWith('/') || (hote && h.includes(hote))).length;\nconst liensExternes = liens.filter(h => /^https?:\\/\\//i.test(h) && hote && !h.includes(hote)).length;\n\nconst blocsJsonLd = (html.match(/<script[^>]+application\\/ld\\+json[^>]*>([\\s\\S]*?)<\\/script>/gi) || []);\nconst types = new Set();\nlet auteur = false, datePubliee = false, dateModifiee = false;\nfor (const bloc of blocsJsonLd) {\n  const brut = bloc.replace(/^[\\s\\S]*?>/, '').replace(/<\\/script>$/i, '');\n  try {\n    const data = JSON.parse(brut);\n    const liste = Array.isArray(data) ? data : (data['@graph'] && Array.isArray(data['@graph']) ? data['@graph'] : [data]);\n    for (const o of liste) {\n      if (!o || typeof o !== 'object') continue;\n      const t = o['@type'];\n      if (Array.isArray(t)) t.forEach(x => types.add(String(x)));\n      else if (t) types.add(String(t));\n      if (o.author) auteur = true;\n      if (o.datePublished) datePubliee = true;\n      if (o.dateModified) dateModifiee = true;\n    }\n  } catch (e) { /* bloc illisible, ignore */ }\n}\nconst typesListe = Array.from(types).sort();\nconst faq = typesListe.some(t => /FAQPage|Question|HowTo/i.test(t));\nif (!auteur) auteur = /rel=[\"']author[\"']/i.test(html) || /itemprop=[\"']author[\"']/i.test(html);\nif (!dateModifiee) dateModifiee = /<time[^>]+datetime=/i.test(html);\n\nconst listes = (nettoye.match(/<(ul|ol)[^>]*>/gi) || []).length;\nconst tableaux = (nettoye.match(/<table[^>]*>/gi) || []).length;\nconst chiffres = (texte.match(/\\d+\\s?(%|€|\\$|ans|jours|heures|minutes|clients|utilisateurs|fois)/gi) || []).length;\nconst marque = String(cfg.marque || '').trim();\nconst mentionsMarque = marque ? (texte.toLowerCase().split(marque.toLowerCase()).length - 1) : 0;\n\nlet scoreSeo = 0;\nconst constats = [];\nif (titre) { scoreSeo += 4; if (titre.length >= 30 && titre.length <= 65) scoreSeo += 4; else constats.push('Titre de ' + titre.length + ' caracteres, viser 30 a 65.'); } else constats.push('Aucune balise titre.');\nif (metaDescription) { scoreSeo += 4; if (metaDescription.length >= 70 && metaDescription.length <= 160) scoreSeo += 4; else constats.push('Meta description de ' + metaDescription.length + ' caracteres, viser 70 a 160.'); } else constats.push('Aucune meta description.');\nif (h1s.length === 1) scoreSeo += 6; else constats.push(h1s.length + ' balises h1 trouvees, il en faut exactement une.');\nif (canonical) scoreSeo += 4; else constats.push('Pas de lien canonique.');\nif (langue) scoreSeo += 2; else constats.push('Langue de la page non declaree.');\nif (images.length === 0 || imagesSansAlt / images.length <= 0.2) scoreSeo += 6; else constats.push(imagesSansAlt + ' images sur ' + images.length + ' sans texte alternatif.');\nif (liensInternes >= 3) scoreSeo += 6; else constats.push('Seulement ' + liensInternes + ' liens internes.');\nif (robotsNoindex) { scoreSeo = Math.max(0, scoreSeo - 10); constats.push('La page est en noindex, elle ne sera pas indexee.'); }\n\nlet scoreIa = 0;\nif (h2s.length >= 3) scoreIa += 8; else constats.push('Seulement ' + h2s.length + ' sous titres h2, la structure est trop plate pour etre citee.');\nif (listes + tableaux >= 2) scoreIa += 6; else constats.push('Peu de listes ou de tableaux, les IA reprennent mal le texte en blocs.');\nif (titresQuestions >= 1) scoreIa += 4; else constats.push('Aucun titre formule comme une question.');\nif (mots >= 300) scoreIa += 6; else constats.push('Contenu de ' + mots + ' mots, trop court pour etre une source.');\nif (typesListe.length > 0) scoreIa += 6; else constats.push('Aucune donnee structuree JSON-LD.');\n\nlet scoreGeo = 0;\nif (faq) scoreGeo += 6; else constats.push('Pas de schema FAQ, Question ou HowTo.');\nif (auteur) scoreGeo += 5; else constats.push('Aucun auteur identifiable.');\nif (dateModifiee || datePubliee) scoreGeo += 5; else constats.push('Aucune date de publication ou de mise a jour.');\nif (chiffres >= 5) scoreGeo += 6; else constats.push('Seulement ' + chiffres + ' preuves chiffrees reperees.');\nif (!marque) scoreGeo += 2;\nelse if (mentionsMarque >= 3) scoreGeo += 4;\nelse constats.push('La marque ' + marque + ' n apparait que ' + mentionsMarque + ' fois dans le texte.');\nif (llmsTrouve) scoreGeo += 4; else constats.push('Pas de fichier llms.txt a la racine du site.');\n\nconst score = Math.min(100, scoreSeo + scoreIa + scoreGeo);\n\nreturn [{ json: Object.assign({}, cfg, {\n  erreur: '',\n  score: score,\n  score_seo: scoreSeo,\n  score_ia: scoreIa,\n  score_geo: scoreGeo,\n  titre: titre,\n  meta_description: metaDescription,\n  h1: h1s[0] || '',\n  mots: mots,\n  donnees_structurees: typesListe.join(', '),\n  llms_txt: llmsTrouve,\n  liens_internes: liensInternes,\n  liens_externes: liensExternes,\n  h2: h2s.length,\n  h3: h3s,\n  listes: listes,\n  tableaux: tableaux,\n  chiffres: chiffres,\n  mentions_marque: mentionsMarque,\n  images: images.length,\n  images_sans_alt: imagesSansAlt,\n  og: ogTitre && ogDescription,\n  constats: constats.join(' ')\n}) }];"
+      },
+      "id": "c8caa67d-6909-42bf-902a-12c3c5faaa36",
+      "name": "Analyser la page",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        960,
+        0
+      ]
+    },
+    {
+      "parameters": {
+        "modelId": {
+          "__rl": true,
+          "mode": "id",
+          "value": "claude-sonnet-5"
+        },
+        "messages": {
+          "values": [
+            {
+              "content": "={{ 'Tu es consultant SEO et GEO. Voici l’audit technique d’une page. Rédige en français, 180 mots maximum. Aucun tiret long, aucun titre markdown, aucune étoile de mise en gras : uniquement des phrases et des listes numérotées.\\n\\nPage : ' + $json.url + '\\nNote globale : ' + $json.score + ' sur 100 (SEO ' + $json.score_seo + '/40, lisibilité IA ' + $json.score_ia + '/30, signaux GEO ' + $json.score_geo + '/30)\\nTitre : ' + $json.titre + '\\nMeta description : ' + $json.meta_description + '\\nMots : ' + $json.mots + '\\nSous-titres h2 : ' + $json.h2 + '\\nListes et tableaux : ' + ($json.listes + $json.tableaux) + '\\nDonnées structurées : ' + ($json.donnees_structurees || 'aucune') + '\\nFichier llms.txt : ' + ($json.llms_txt ? 'présent' : 'absent') + '\\nPreuves chiffrées : ' + $json.chiffres + '\\nConstats : ' + $json.constats + '\\n\\nDonne 3 actions rapides, chacune en une phrase avec son effet attendu, puis 2 chantiers de fond. Termine par une phrase sur ce que la page doit devenir pour être citée par ChatGPT, Claude, Perplexity et Gemini.' }}"
+            }
+          ]
+        },
+        "simplify": false,
+        "options": {
+          "maxTokens": 1200
+        }
+      },
+      "id": "ade745fd-6023-4e5c-bf37-fc18cd6e2c4e",
+      "name": "Rédiger les recommandations",
+      "type": "@n8n/n8n-nodes-langchain.anthropic",
+      "typeVersion": 1,
+      "position": [
+        1200,
+        0
+      ],
+      "retryOnFail": true,
+      "onError": "continueRegularOutput"
+    },
+    {
+      "parameters": {
+        "jsCode": "const audit = $('Analyser la page').first().json;\nconst reponse = $input.first().json;\nlet texte = '';\nif (Array.isArray(reponse.content)) {\n  texte = reponse.content.filter(c => c && c.type === 'text').map(c => c.text).join('\\n').trim();\n} else if (typeof reponse.text === 'string') {\n  texte = reponse.text.trim();\n}\nif (!texte) texte = 'Recommandations indisponibles, relancez l audit.';\n\n// Pas de tiret long ni de markdown dans un texte visible.\ntexte = texte\n  .replace(/\\s*[\\u2014\\u2013]\\s*/g, ' : ')\n  .replace(/^#{1,6}\\s*/gm, '')\n  .replace(/\\*\\*/g, '')\n  .replace(/\\n{3,}/g, '\\n\\n')\n  .trim();\n\nreturn [{ json: Object.assign({}, audit, { recommandations: texte, audit_at: new Date().toISOString() }) }];"
+      },
+      "id": "397c2909-e4df-4192-bf7b-0ac6cad942de",
+      "name": "Mettre en forme",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1560,
+        0
+      ]
+    },
+    {
+      "parameters": {
+        "dataTableId": {
+          "__rl": true,
+          "mode": "list",
+          "value": "",
+          "cachedResultName": "Audits SEO et GEO"
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "audit_at": "={{ $json.audit_at }}",
+            "url": "={{ $json.url }}",
+            "marque": "={{ $json.marque }}",
+            "score": "={{ $json.score }}",
+            "score_seo": "={{ $json.score_seo }}",
+            "score_ia": "={{ $json.score_ia }}",
+            "score_geo": "={{ $json.score_geo }}",
+            "titre": "={{ $json.titre }}",
+            "meta_description": "={{ $json.meta_description }}",
+            "h1": "={{ $json.h1 }}",
+            "mots": "={{ $json.mots }}",
+            "donnees_structurees": "={{ $json.donnees_structurees }}",
+            "llms_txt": "={{ $json.llms_txt }}",
+            "constats": "={{ $json.constats }}",
+            "recommandations": "={{ $json.recommandations }}",
+            "erreur": "={{ $json.erreur }}"
+          },
+          "schema": []
+        },
+        "options": {}
+      },
+      "id": "f8170685-4a96-4791-ac65-90532205f660",
+      "name": "Enregistrer l’audit",
+      "type": "n8n-nodes-base.dataTable",
+      "typeVersion": 1.1,
+      "position": [
+        1800,
+        0
+      ]
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "resume",
+              "name": "resultat",
+              "value": "={{ $('Mettre en forme').first().json.score }}/100 pour {{ $('Mettre en forme').first().json.url }}",
+              "type": "string"
+            },
+            {
+              "id": "detail",
+              "name": "detail",
+              "value": "={{ 'SEO ' + $('Mettre en forme').first().json.score_seo + '/40, lisibilite IA ' + $('Mettre en forme').first().json.score_ia + '/30, signaux GEO ' + $('Mettre en forme').first().json.score_geo + '/30' }}",
+              "type": "string"
+            },
+            {
+              "id": "conseils",
+              "name": "recommandations",
+              "value": "={{ $('Mettre en forme').first().json.recommandations }}",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "75a9c27e-fb0e-4cd0-a73e-c6eee5ba73ec",
+      "name": "Réponse",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        2040,
+        0
+      ]
+    }
+  ],
+  "connections": {
+    "Demande d’audit": {
+      "main": [
+        [
+          {
+            "node": "Préparer la demande",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Préparer la demande": {
+      "main": [
+        [
+          {
+            "node": "Récupérer la page",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Récupérer la page": {
+      "main": [
+        [
+          {
+            "node": "Chercher llms.txt",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Chercher llms.txt": {
+      "main": [
+        [
+          {
+            "node": "Analyser la page",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Analyser la page": {
+      "main": [
+        [
+          {
+            "node": "Rédiger les recommandations",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Rédiger les recommandations": {
+      "main": [
+        [
+          {
+            "node": "Mettre en forme",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Mettre en forme": {
+      "main": [
+        [
+          {
+            "node": "Enregistrer l’audit",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Enregistrer l’audit": {
+      "main": [
+        [
+          {
+            "node": "Réponse",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1"
+  }
+}

@@ -1,0 +1,391 @@
+{
+  "name": "Mesure du temps gagné : heures et euros économisés par les automatisations",
+  "nodes": [
+    {
+      "id": "42edc6b0-c52e-40ee-b766-ca410e389378",
+      "name": "Présentation",
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        -60,
+        -526
+      ],
+      "parameters": {
+        "content": "## Mesure du temps gagné\nPar **Elie LISSODA**, automatisation marketing · [elie.koudujob.com](https://elie.koudujob.com)\n\nUne automatisation qui marche devient invisible. Ce rapport du 1er du mois rappelle combien d'heures elle fait gagner, et ce que ça vaut en euros.\n\nPour le lancer : créez une clé API n8n, connectez Gmail, créez la table « Temps gagné par mois » et réglez vos minutes par workflow.\n\nUne question ? Je suis disponible sur [elie.koudujob.com](https://elie.koudujob.com) 😉",
+        "color": 2,
+        "width": 600,
+        "height": 336
+      }
+    },
+    {
+      "id": "5ecfb201-d190-4126-a301-8b7c5ce0e4ba",
+      "name": "Étape 1",
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        -60,
+        -150
+      ],
+      "parameters": {
+        "content": "### 1. Le 1er du mois\nTaux horaire et minutes gagnées par workflow se règlent dans Configuration.",
+        "color": 7,
+        "width": 432,
+        "height": 522
+      }
+    },
+    {
+      "id": "7a085978-19ab-495b-8726-4b8c674d3975",
+      "name": "Étape 2",
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        388,
+        -54
+      ],
+      "parameters": {
+        "content": "### 2. Compter les exécutions\nL'API n8n donne les exécutions réussies du mois précédent. Les essais à la main ne comptent pas.",
+        "color": 5,
+        "width": 432,
+        "height": 330
+      }
+    },
+    {
+      "id": "7a5544d0-5b7a-4824-b824-892bb3c08c8b",
+      "name": "Étape 3",
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        836,
+        -54
+      ],
+      "parameters": {
+        "content": "### 3. Calculer\nLes minutes deviennent des heures, puis des euros. Chaque mois est gardé.",
+        "color": 1,
+        "width": 432,
+        "height": 330
+      }
+    },
+    {
+      "id": "570703c1-d5d3-49da-a738-ecc3ad5e8132",
+      "name": "Étape 4",
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        1284,
+        -54
+      ],
+      "parameters": {
+        "content": "### 4. Envoyer\nLe rapport part par e-mail.",
+        "color": 4,
+        "width": 220,
+        "height": 330
+      }
+    },
+    {
+      "id": "f56c24ac-3aeb-49c5-a63c-6aa4a51a23ac",
+      "name": "Le 1er de chaque mois à 8 h",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.2,
+      "position": [
+        0,
+        0
+      ],
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "field": "months",
+              "triggerAtDayOfMonth": 1,
+              "triggerAtHour": 8
+            }
+          ]
+        }
+      }
+    },
+    {
+      "id": "b6e4fd62-09e7-41d6-9e0d-1a5ab008679e",
+      "name": "Configuration",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        224,
+        96
+      ],
+      "parameters": {
+        "mode": "manual",
+        "includeOtherFields": false,
+        "assignments": {
+          "assignments": [
+            {
+              "id": "c-taux",
+              "name": "taux_horaire",
+              "value": 45,
+              "type": "number"
+            },
+            {
+              "id": "c-defaut",
+              "name": "minutes_par_defaut",
+              "value": 3,
+              "type": "number"
+            },
+            {
+              "id": "c-minutes",
+              "name": "minutes_par_workflow",
+              "value": "Reporting marketing hebdomadaire | 90\nQualification de leads | 12\nExtraction de documents | 8\nVeille GEO | 120",
+              "type": "string"
+            },
+            {
+              "id": "c-email",
+              "name": "report_email",
+              "value": "direction@exemple.fr",
+              "type": "string"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "id": "2988aefb-1262-4ed7-a021-286c9b555145",
+      "name": "Lire les exécutions réussies",
+      "type": "n8n-nodes-base.n8n",
+      "typeVersion": 1,
+      "position": [
+        448,
+        96
+      ],
+      "parameters": {
+        "resource": "execution",
+        "operation": "getAll",
+        "returnAll": true,
+        "filters": {
+          "status": "success"
+        },
+        "options": {}
+      },
+      "executeOnce": true
+    },
+    {
+      "id": "97dbe75c-3650-4d31-b1c4-a82bae463eff",
+      "name": "Lire les workflows",
+      "type": "n8n-nodes-base.n8n",
+      "typeVersion": 1,
+      "position": [
+        672,
+        96
+      ],
+      "parameters": {
+        "resource": "workflow",
+        "operation": "getAll",
+        "returnAll": true,
+        "filters": {}
+      },
+      "executeOnce": true
+    },
+    {
+      "id": "f18a9125-7db3-493a-9351-2e690484fb5f",
+      "name": "Calculer le temps gagné",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        896,
+        96
+      ],
+      "parameters": {
+        "mode": "runOnceForAllItems",
+        "language": "javaScript",
+        "jsCode": "const cfg = $('Configuration').first().json;\nconst debut = $now.minus({ months: 1 }).startOf('month'); const fin = debut.endOf('month');\nconst libelleMois = debut.setLocale('fr').toFormat('LLLL yyyy');\nconst noms = {}; for (const w of $('Lire les workflows').all()) noms[w.json.id] = w.json.name;\nconst minutesPar = {};\nfor (const ligne of String(cfg.minutes_par_workflow || '').split('\\n')) { const [nom, min] = ligne.split('|').map(s => (s || '').trim()); if (nom && Number(min) > 0) minutesPar[nom.toLowerCase()] = Number(min); }\nconst parWf = {};\nfor (const e of $('Lire les exécutions réussies').all().map(i => i.json)) {\n  if (!e.startedAt || e.mode === 'manual') continue;\n  const t = DateTime.fromISO(e.startedAt); if (t < debut || t > fin) continue;\n  const nom = noms[e.workflowId] || ('Workflow ' + e.workflowId);\n  parWf[nom] = (parWf[nom] || 0) + 1;\n}\nconst lignes = Object.entries(parWf).map(([nom, n]) => { const m = minutesPar[nom.toLowerCase()] ?? Number(cfg.minutes_par_defaut || 0); return { nom, executions: n, minutes: n * m }; }).sort((a, b) => b.minutes - a.minutes);\nconst totalExec = lignes.reduce((s, l) => s + l.executions, 0);\nconst heures = Math.round(lignes.reduce((s, l) => s + l.minutes, 0) / 6) / 10;\nconst valeur = Math.round(heures * Number(cfg.taux_horaire || 0));\nconst fmt = n => String(n).replace('.', ',');\nconst tr = lignes.slice(0, 10).map(l => '<tr><td style=\"padding:6px 10px;border-bottom:1px solid #eee\">' + l.nom + '</td><td style=\"padding:6px 10px;border-bottom:1px solid #eee;text-align:right\">' + l.executions + '</td><td style=\"padding:6px 10px;border-bottom:1px solid #eee;text-align:right\">' + fmt(Math.round(l.minutes / 6) / 10) + ' h</td></tr>').join('');\nconst html = '<p>Bonjour,</p><p>En ' + libelleMois + ', les automatisations ont tourné <b>' + totalExec + ' fois</b> et ont évité environ <b>' + fmt(heures) + ' heures</b> de travail manuel, soit <b>' + valeur + ' €</b> au taux de ' + cfg.taux_horaire + ' € de l\\'heure.</p>' + (tr ? '<table style=\"border-collapse:collapse;font-size:14px\"><tr><th style=\"text-align:left;padding:6px 10px\">Workflow</th><th style=\"text-align:right;padding:6px 10px\">Exécutions</th><th style=\"text-align:right;padding:6px 10px\">Temps gagné</th></tr>' + tr + '</table>' : '<p>Aucune exécution automatique ce mois-ci.</p>') + '<p>Les minutes gagnées par exécution se règlent dans le nœud Configuration.</p>';\nreturn [{ json: { mois: libelleMois, executions: totalExec, heures, valeur_euros: valeur, detail: JSON.stringify(lignes), objet: 'Temps gagné en ' + libelleMois + ' : ' + fmt(heures) + ' h', html } }];"
+      }
+    },
+    {
+      "id": "76d264ae-def7-4cb4-aa37-6293ad9262e2",
+      "name": "Garder le mois",
+      "type": "n8n-nodes-base.dataTable",
+      "typeVersion": 1.1,
+      "position": [
+        1120,
+        96
+      ],
+      "parameters": {
+        "resource": "row",
+        "operation": "insert",
+        "dataTableId": {
+          "__rl": true,
+          "mode": "list",
+          "value": "",
+          "cachedResultName": "Temps gagné par mois"
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "mois": "={{ $json.mois }}",
+            "executions": "={{ $json.executions }}",
+            "heures": "={{ $json.heures }}",
+            "valeur_euros": "={{ $json.valeur_euros }}",
+            "detail": "={{ $json.detail }}"
+          },
+          "schema": [
+            {
+              "id": "mois",
+              "displayName": "mois",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "executions",
+              "displayName": "executions",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "number",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "heures",
+              "displayName": "heures",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "number",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "valeur_euros",
+              "displayName": "valeur_euros",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "number",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "detail",
+              "displayName": "detail",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            }
+          ]
+        }
+      }
+    },
+    {
+      "id": "ca655d64-83be-420e-b9ca-7cea56fe1518",
+      "name": "Envoyer le rapport",
+      "type": "n8n-nodes-base.gmail",
+      "typeVersion": 2.2,
+      "position": [
+        1344,
+        96
+      ],
+      "parameters": {
+        "resource": "message",
+        "operation": "send",
+        "sendTo": "={{ $('Configuration').first().json.report_email }}",
+        "subject": "={{ $('Calculer le temps gagné').first().json.objet }}",
+        "emailType": "html",
+        "message": "={{ $('Calculer le temps gagné').first().json.html }}",
+        "options": {
+          "appendAttribution": false
+        }
+      }
+    },
+    {
+      "id": "0cc0c8fa-eb8d-40c3-b578-9222614cee77",
+      "name": "Calculer maintenant",
+      "type": "n8n-nodes-base.manualTrigger",
+      "typeVersion": 1,
+      "position": [
+        0,
+        192
+      ],
+      "parameters": {}
+    }
+  ],
+  "connections": {
+    "Le 1er de chaque mois à 8 h": {
+      "main": [
+        [
+          {
+            "node": "Configuration",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Configuration": {
+      "main": [
+        [
+          {
+            "node": "Lire les exécutions réussies",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Lire les exécutions réussies": {
+      "main": [
+        [
+          {
+            "node": "Lire les workflows",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Lire les workflows": {
+      "main": [
+        [
+          {
+            "node": "Calculer le temps gagné",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Calculer le temps gagné": {
+      "main": [
+        [
+          {
+            "node": "Garder le mois",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Garder le mois": {
+      "main": [
+        [
+          {
+            "node": "Envoyer le rapport",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Calculer maintenant": {
+      "main": [
+        [
+          {
+            "node": "Configuration",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1"
+  }
+}

@@ -1,0 +1,674 @@
+{
+  "name": "Assistant RAG : documents internes cités par Claude",
+  "nodes": [
+    {
+      "id": "4f9df62c-d4f2-45a4-b3d8-c2036034a09c",
+      "name": "Présentation",
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        -60,
+        -401
+      ],
+      "parameters": {
+        "content": "## Assistant RAG sur documents internes\nPar **Elie LISSODA**, automatisation marketing · [elie.koudujob.com](https://elie.koudujob.com)\n\nLes réponses sont déjà dans vos documents internes. Cet assistant les retrouve, répond en français et cite chaque source. S'il ne sait pas, il le dit.\n\nPour le lancer : connectez Claude et OpenAI, créez la table « Questions assistant RAG », chargez la base d'exemple, puis ouvrez le chat.\n\nUne question ? Je suis disponible sur [elie.koudujob.com](https://elie.koudujob.com) 😉",
+        "color": 2,
+        "width": 600,
+        "height": 336
+      }
+    },
+    {
+      "id": "6fdbfbe8-d69c-4ef7-96fc-f5d9acea9349",
+      "name": "Étape 1",
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        -60,
+        -25
+      ],
+      "parameters": {
+        "content": "### 1. Ajouter un document\nUn PDF, un Word ou un texte est découpé en passages, puis rangé dans la base.",
+        "color": 5,
+        "width": 620,
+        "height": 705
+      }
+    },
+    {
+      "id": "7cbb4f1a-e293-42ea-9968-d5f432ac8a56",
+      "name": "Étape 2",
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        720,
+        -25
+      ],
+      "parameters": {
+        "content": "### 2. Essayer tout de suite\nTrois documents fictifs pour tester : remboursement, accueil client, tarifs.",
+        "color": 7,
+        "width": 820,
+        "height": 705
+      }
+    },
+    {
+      "id": "a8862168-ee9c-4d3e-9ac7-62f6d1e1aed2",
+      "name": "Étape 3",
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        -60,
+        755
+      ],
+      "parameters": {
+        "content": "### 3. Répondre\nClaude cherche les bons passages, croise les documents et cite ses sources.",
+        "color": 6,
+        "width": 704,
+        "height": 705
+      }
+    },
+    {
+      "id": "265aa167-4ddf-43e9-8e66-511998597ab9",
+      "name": "Étape 4",
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        660,
+        755
+      ],
+      "parameters": {
+        "content": "### 4. Garder la question\nVous voyez ce que les équipes cherchent vraiment.",
+        "color": 4,
+        "width": 440,
+        "height": 305
+      }
+    },
+    {
+      "id": "346c7c4d-14e0-48cd-a959-ff4175efd89f",
+      "name": "Ajouter un document",
+      "type": "n8n-nodes-base.formTrigger",
+      "typeVersion": 2.6,
+      "position": [
+        0,
+        100
+      ],
+      "parameters": {
+        "formTitle": "Ajouter un document à la base",
+        "formDescription": "PDF, Word ou texte : le document est découpé, indexé, et l'assistant pourra le citer.",
+        "formFields": {
+          "values": [
+            {
+              "fieldLabel": "Document",
+              "fieldName": "data",
+              "fieldType": "file",
+              "multipleFiles": false,
+              "acceptFileTypes": ".pdf,.docx,.txt,.md",
+              "requiredField": true
+            }
+          ]
+        },
+        "responseMode": "onReceived",
+        "options": {
+          "appendAttribution": false,
+          "buttonLabel": "Indexer le document",
+          "respondWithOptions": {
+            "values": {
+              "respondWith": "text",
+              "formSubmittedText": "Document reçu : il est indexé dans quelques secondes."
+            }
+          }
+        }
+      }
+    },
+    {
+      "id": "d41553c6-5523-4d6c-854d-7ddeeb0b5f72",
+      "name": "Indexer le document",
+      "type": "@n8n/n8n-nodes-langchain.vectorStoreInMemory",
+      "typeVersion": 1.3,
+      "position": [
+        260,
+        100
+      ],
+      "parameters": {
+        "mode": "insert",
+        "memoryKey": {
+          "__rl": true,
+          "mode": "id",
+          "value": "base_documents_internes"
+        }
+      }
+    },
+    {
+      "id": "e2b431e7-c9ba-4705-a58f-5099cbf97be3",
+      "name": "Vecteurs du document",
+      "type": "@n8n/n8n-nodes-langchain.embeddingsOpenAi",
+      "typeVersion": 1.2,
+      "position": [
+        200,
+        320
+      ],
+      "parameters": {
+        "model": "text-embedding-3-small",
+        "options": {}
+      }
+    },
+    {
+      "id": "77c253ed-8a3c-44d6-9013-b333bae5f0e4",
+      "name": "Lire le fichier",
+      "type": "@n8n/n8n-nodes-langchain.documentDefaultDataLoader",
+      "typeVersion": 1.1,
+      "position": [
+        380,
+        320
+      ],
+      "parameters": {
+        "dataType": "binary",
+        "binaryMode": "allInputData",
+        "loader": "auto",
+        "textSplittingMode": "custom",
+        "options": {
+          "metadata": {
+            "metadataValues": [
+              {
+                "name": "source",
+                "value": "={{ $binary.data.fileName }}"
+              }
+            ]
+          }
+        }
+      }
+    },
+    {
+      "id": "42a35b4e-34be-4ec0-b545-320ea8f74e2a",
+      "name": "Découper le fichier",
+      "type": "@n8n/n8n-nodes-langchain.textSplitterRecursiveCharacterTextSplitter",
+      "typeVersion": 1,
+      "position": [
+        380,
+        520
+      ],
+      "parameters": {
+        "chunkSize": 900,
+        "chunkOverlap": 150,
+        "options": {}
+      }
+    },
+    {
+      "id": "79f5b556-984e-464b-8f53-591a38e5a62c",
+      "name": "Charger la base d'exemple",
+      "type": "n8n-nodes-base.manualTrigger",
+      "typeVersion": 1,
+      "position": [
+        780,
+        100
+      ],
+      "parameters": {}
+    },
+    {
+      "id": "6d088354-ddf6-4d56-aeaa-477991db4c8c",
+      "name": "Documents internes fictifs",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1000,
+        100
+      ],
+      "parameters": {
+        "mode": "runOnceForAllItems",
+        "language": "javaScript",
+        "jsCode": "const docs = [\n  { source: 'Politique de remboursement.pdf', texte: \"Politique de remboursement de l'Atelier Nova. Un client peut demander le remboursement d'une prestation non commencée dans les 30 jours suivant la commande. Une prestation commencée n'est pas remboursée : elle donne lieu à un avoir valable 12 mois, calculé au prorata des livrables non remis. Les frais de déplacement engagés ne sont jamais remboursés. Toute demande passe par le responsable de compte, qui répond sous 5 jours ouvrés.\" },\n  { source: \"Procédure d'accueil client.pdf\", texte: \"Procédure d'accueil d'un nouveau client. Le rendez-vous de lancement a lieu dans les 5 jours ouvrés suivant la signature. Le client reçoit ses accès à l'espace projet le jour du lancement. Un responsable de compte unique est nommé pour toute la durée du contrat. Le premier point d'étape a lieu au bout de 30 jours, avec un rapport écrit envoyé la veille.\" },\n  { source: 'Grille tarifaire 2026.pdf', texte: \"Grille tarifaire 2026. Forfait Essentiel : 490 euros HT par mois, 2 livrables par mois. Forfait Pro : 890 euros HT par mois, 5 livrables par mois et un point hebdomadaire. Forfait Sur mesure : sur devis. Les forfaits Essentiel et Pro sont engagés pour 6 mois minimum ; une résiliation avant 6 mois entraîne la facturation des mois restants. Un paiement annuel donne droit à 10 pour cent de remise.\" }\n];\nreturn docs.map(d => ({ json: d }));"
+      }
+    },
+    {
+      "id": "9c95a347-bfc4-4063-83cf-217e04d435e7",
+      "name": "Indexer la base d'exemple",
+      "type": "@n8n/n8n-nodes-langchain.vectorStoreInMemory",
+      "typeVersion": 1.3,
+      "position": [
+        1240,
+        100
+      ],
+      "parameters": {
+        "mode": "insert",
+        "memoryKey": {
+          "__rl": true,
+          "mode": "id",
+          "value": "base_documents_internes"
+        },
+        "clearStore": true
+      }
+    },
+    {
+      "id": "228e4b06-fc93-4f57-9efe-2530c678d6a2",
+      "name": "Vecteurs des exemples",
+      "type": "@n8n/n8n-nodes-langchain.embeddingsOpenAi",
+      "typeVersion": 1.2,
+      "position": [
+        1180,
+        320
+      ],
+      "parameters": {
+        "model": "text-embedding-3-small",
+        "options": {}
+      }
+    },
+    {
+      "id": "f9786fc3-a788-41ec-80d8-b3a254398d07",
+      "name": "Lire les documents",
+      "type": "@n8n/n8n-nodes-langchain.documentDefaultDataLoader",
+      "typeVersion": 1.1,
+      "position": [
+        1360,
+        320
+      ],
+      "parameters": {
+        "dataType": "json",
+        "jsonMode": "expressionData",
+        "jsonData": "={{ $json.texte }}",
+        "textSplittingMode": "custom",
+        "options": {
+          "metadata": {
+            "metadataValues": [
+              {
+                "name": "source",
+                "value": "={{ $json.source }}"
+              }
+            ]
+          }
+        }
+      }
+    },
+    {
+      "id": "eaaa924d-a4ea-4f4a-98ae-a2122002e498",
+      "name": "Découper les documents",
+      "type": "@n8n/n8n-nodes-langchain.textSplitterRecursiveCharacterTextSplitter",
+      "typeVersion": 1,
+      "position": [
+        1360,
+        520
+      ],
+      "parameters": {
+        "chunkSize": 900,
+        "chunkOverlap": 150,
+        "options": {}
+      }
+    },
+    {
+      "id": "a292c60f-9f3c-4b23-9140-9f67ca254de8",
+      "name": "Poser une question",
+      "type": "@n8n/n8n-nodes-langchain.chatTrigger",
+      "typeVersion": 1.4,
+      "position": [
+        0,
+        880
+      ],
+      "parameters": {
+        "public": true,
+        "mode": "hostedChat",
+        "authentication": "n8nUserAuth",
+        "initialMessages": "Bonjour, je réponds à partir des documents internes, avec la source de chaque information.\nExemple : un client Pro peut-il résilier au bout de 4 mois ?",
+        "options": {
+          "responseMode": "lastNode",
+          "title": "Assistant documentaire",
+          "subtitle": "Vos documents internes, cités",
+          "inputPlaceholder": "Posez votre question..."
+        }
+      }
+    },
+    {
+      "id": "a2835b5b-0e03-4770-9d69-ee30a97df607",
+      "name": "Assistant documentaire",
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "typeVersion": 3.1,
+      "position": [
+        260,
+        880
+      ],
+      "parameters": {
+        "promptType": "auto",
+        "options": {
+          "systemMessage": "Tu es l'assistant documentaire de l'entreprise. Tu réponds uniquement à partir des documents internes, que tu consultes avec l'outil « Base documentaire », à chaque question.\n\nRègles :\n- Chaque information vient d'un passage renvoyé par l'outil ; cite sa source entre crochets, par exemple [Grille tarifaire 2026.pdf].\n- Si plusieurs documents se complètent, croise-les et cite-les tous.\n- Si les documents ne contiennent pas la réponse, dis-le clairement et indique à qui s'adresser. N'invente jamais un chiffre, un délai ou une règle.\n- Réponses courtes, en français, sans tiret cadratin ni demi-cadratin.",
+          "maxIterations": 6
+        }
+      }
+    },
+    {
+      "id": "1cadd1a7-1e69-4624-bb29-c7030bb9c991",
+      "name": "Claude",
+      "type": "@n8n/n8n-nodes-langchain.lmChatAnthropic",
+      "typeVersion": 1.6,
+      "position": [
+        180,
+        1100
+      ],
+      "parameters": {
+        "model": {
+          "__rl": true,
+          "mode": "list",
+          "value": "claude-sonnet-5",
+          "cachedResultName": "Claude Sonnet 5"
+        },
+        "options": {}
+      }
+    },
+    {
+      "id": "b0892038-2e11-4fc1-a6aa-96338ba9bc3e",
+      "name": "Mémoire de la conversation",
+      "type": "@n8n/n8n-nodes-langchain.memoryBufferWindow",
+      "typeVersion": 1.3,
+      "position": [
+        320,
+        1100
+      ],
+      "parameters": {
+        "sessionIdType": "fromInput",
+        "contextWindowLength": 8
+      }
+    },
+    {
+      "id": "d7065d53-532f-4578-bc4e-8d439831b805",
+      "name": "Base documentaire",
+      "type": "@n8n/n8n-nodes-langchain.vectorStoreInMemory",
+      "typeVersion": 1.3,
+      "position": [
+        480,
+        1100
+      ],
+      "parameters": {
+        "mode": "retrieve-as-tool",
+        "memoryKey": {
+          "__rl": true,
+          "mode": "id",
+          "value": "base_documents_internes"
+        },
+        "topK": 5,
+        "includeDocumentMetadata": true,
+        "toolDescription": "Recherche dans les documents internes de l'entreprise (politiques, procédures, tarifs). Renvoie les passages les plus proches de la question, avec le nom du document source."
+      }
+    },
+    {
+      "id": "4cef5577-28f5-4e70-948c-4c9f9ccaa380",
+      "name": "Vecteurs de la question",
+      "type": "@n8n/n8n-nodes-langchain.embeddingsOpenAi",
+      "typeVersion": 1.2,
+      "position": [
+        480,
+        1300
+      ],
+      "parameters": {
+        "model": "text-embedding-3-small",
+        "options": {}
+      }
+    },
+    {
+      "id": "332ed572-6476-48bf-9ff9-b845d6cd9166",
+      "name": "Garder la question",
+      "type": "n8n-nodes-base.dataTable",
+      "typeVersion": 1.1,
+      "position": [
+        720,
+        880
+      ],
+      "parameters": {
+        "resource": "row",
+        "operation": "insert",
+        "dataTableId": {
+          "__rl": true,
+          "mode": "list",
+          "value": "",
+          "cachedResultName": "Questions assistant RAG"
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "pose_le": "={{ $now.toISO() }}",
+            "question": "={{ $('Poser une question').item.json.chatInput }}",
+            "reponse": "={{ $json.output }}",
+            "session": "={{ $('Poser une question').item.json.sessionId }}"
+          },
+          "schema": [
+            {
+              "id": "pose_le",
+              "displayName": "pose_le",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "dateTime",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "question",
+              "displayName": "question",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "reponse",
+              "displayName": "reponse",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "session",
+              "displayName": "session",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            }
+          ]
+        }
+      }
+    },
+    {
+      "id": "be905bc2-7808-41b5-a614-46880a90599a",
+      "name": "Réponse",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        940,
+        880
+      ],
+      "parameters": {
+        "mode": "manual",
+        "includeOtherFields": false,
+        "assignments": {
+          "assignments": [
+            {
+              "id": "r-output",
+              "name": "output",
+              "value": "={{ $('Assistant documentaire').item.json.output }}",
+              "type": "string"
+            }
+          ]
+        }
+      }
+    }
+  ],
+  "connections": {
+    "Ajouter un document": {
+      "main": [
+        [
+          {
+            "node": "Indexer le document",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Vecteurs du document": {
+      "ai_embedding": [
+        [
+          {
+            "node": "Indexer le document",
+            "type": "ai_embedding",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Lire le fichier": {
+      "ai_document": [
+        [
+          {
+            "node": "Indexer le document",
+            "type": "ai_document",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Découper le fichier": {
+      "ai_textSplitter": [
+        [
+          {
+            "node": "Lire le fichier",
+            "type": "ai_textSplitter",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Charger la base d'exemple": {
+      "main": [
+        [
+          {
+            "node": "Documents internes fictifs",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Documents internes fictifs": {
+      "main": [
+        [
+          {
+            "node": "Indexer la base d'exemple",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Vecteurs des exemples": {
+      "ai_embedding": [
+        [
+          {
+            "node": "Indexer la base d'exemple",
+            "type": "ai_embedding",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Lire les documents": {
+      "ai_document": [
+        [
+          {
+            "node": "Indexer la base d'exemple",
+            "type": "ai_document",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Découper les documents": {
+      "ai_textSplitter": [
+        [
+          {
+            "node": "Lire les documents",
+            "type": "ai_textSplitter",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Poser une question": {
+      "main": [
+        [
+          {
+            "node": "Assistant documentaire",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Assistant documentaire": {
+      "main": [
+        [
+          {
+            "node": "Garder la question",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Claude": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "Assistant documentaire",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Mémoire de la conversation": {
+      "ai_memory": [
+        [
+          {
+            "node": "Assistant documentaire",
+            "type": "ai_memory",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Base documentaire": {
+      "ai_tool": [
+        [
+          {
+            "node": "Assistant documentaire",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Vecteurs de la question": {
+      "ai_embedding": [
+        [
+          {
+            "node": "Base documentaire",
+            "type": "ai_embedding",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Garder la question": {
+      "main": [
+        [
+          {
+            "node": "Réponse",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1"
+  }
+}

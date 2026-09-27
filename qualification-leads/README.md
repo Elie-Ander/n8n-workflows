@@ -1,48 +1,22 @@
 # Qualification de leads entrants
 
-Chaque demande reçue par ton formulaire de contact est gardée, enrichie par le site du prospect, notée sur 100 et poussée dans HubSpot. Quand le lead est chaud, une tâche de rappel est créée et le commercial reçoit un e-mail avec la première phrase à dire.
+Chaque demande de contact est lue, enrichie avec le site du prospect et notée sur 100. Le commercial n'est dérangé que pour les leads chauds.
 
-![Canevas du workflow](apercu.png)
+![Le workflow dans n8n](apercu.png)
 
-## Le problème
+## Comment il fonctionne
 
-Les demandes entrantes arrivent toutes au même endroit, sans tri. Le commercial rappelle dans l'ordre d'arrivée plutôt que dans l'ordre de valeur, saisit chaque contact à la main dans le CRM, et les meilleures demandes attendent parfois plusieurs jours.
+1. **La demande arrive.** Elle est gardée tout de suite, même si la suite échoue.
+2. **Lire le site du prospect.** Seulement un vrai site public : adresses IP et réseaux internes sont refusés.
+3. **Qualifier.** Moitié Claude, qui juge l'adéquation à votre offre, moitié règles. Si Claude ne répond pas, les règles prennent le relais.
+4. **Ranger dans HubSpot.** Le contact est créé ou mis à jour, avec son score et ses raisons.
+5. **Alerter.** Lead chaud : une tâche de rappel et un e-mail au commercial. Problème technique : une alerte part.
 
-## Le résultat
+Testé sur des demandes simulées.
 
-- Chaque demande est enregistrée dans une table n8n avant tout traitement : rien ne se perd, même si une étape échoue ensuite.
-- Le site du prospect est lu : titre, description, titre principal et un extrait du texte. Sans site renseigné, le domaine de l'e-mail professionnel sert de piste.
-- Score sur 100 : la moitié vient de Claude, qui juge l'adéquation entre la demande et ton offre, l'autre de règles fixes (budget 25 points, délai 15, e-mail professionnel 10).
-- Chaque lead est rangé en chaud, tiède ou froid. Le seuil du lead chaud se règle, 70 par défaut.
-- Le contact est créé ou mis à jour dans HubSpot avec son entreprise, son poste, son site et son message.
-- Lead chaud : tâche de rappel dans HubSpot et e-mail au commercial avec le résumé, les raisons du score, les points à vérifier et la première phrase à dire.
-- Claude ou HubSpot en panne : le lead reste dans la table, le score repasse sur les règles seules et une alerte d'anomalie part.
-- Les champs du formulaire sont traités comme des données, jamais comme des consignes : un prospect ne peut pas gonfler son score en écrivant des instructions.
-- Le site n'est lu que s'il s'agit d'un domaine public : adresses IP et réseaux locaux sont refusés.
+## Pour l'installer
 
-Testé sur des données simulées.
-
-## Les nœuds
-
-| Nœud | Rôle |
-|---|---|
-| Formulaire de contact | Nom, e-mail professionnel, entreprise, site, poste, taille, besoin, budget, délai et accord de recontact |
-| Configuration | Ton offre, ton client idéal, le seuil du lead chaud, les e-mails du commercial et de l'administrateur |
-| Normaliser la demande | Nettoie les champs, repère les e-mails personnels et le site à lire |
-| Enregistrer la demande | Garde la demande brute dans la table Leads qualifies |
-| Site à lire ?, Lire le site du prospect | Appelle le site seulement si c'est un domaine public |
-| Extraire le contenu du site | Titre, description, titre principal et 2 500 caractères de texte |
-| Qualifier avec Claude | Claude Opus 5 : note d'adéquation, résumé, raisons, risques, prochaine action et première phrase |
-| Calculer le score | Ajoute les règles et range le lead en chaud, tiède ou froid |
-| HubSpot : créer ou mettre à jour le contact | Fiche contact à jour |
-| Préparer le suivi | Rédige la tâche, l'e-mail au commercial et l'alerte d'anomalie |
-| Compléter la fiche du lead | Écrit le score, le segment, les raisons et l'identifiant HubSpot dans la table |
-| Lead chaud ?, HubSpot : tâche de rappel, Alerter le commercial | Tâche et e-mail quand le score atteint le seuil |
-| Anomalie ?, Signaler l'anomalie | E-mail à l'administrateur si Claude ou HubSpot a échoué |
-
-## Configuration
-
-1. **Table n8n** « Leads qualifies » avec ces colonnes :
+1. Créez la table n8n « Leads qualifies » :
 
    | Colonne | Type |
    |---|---|
@@ -52,10 +26,14 @@ Testé sur des données simulées.
    | segment, reasons, next_action, hubspot_id, error | Texte |
    | alert_sent | Booléen |
 
-2. **Claude** : crée un identifiant « Anthropic » avec ta clé API.
-3. **HubSpot** : crée une application privée avec les droits de lecture et d'écriture sur les contacts et les tâches, puis colle son jeton dans un identifiant « HubSpot App Token ».
-4. **Gmail** : crée un identifiant Gmail OAuth2.
-5. **Configuration** : remplis ton offre, ton client idéal, le seuil, les deux e-mails et, si tu veux un lien direct vers la fiche, l'identifiant de ton portail HubSpot.
-6. **Import** : importe `workflow.json`, choisis ta table dans les 2 nœuds de table, rattache tes identifiants et publie. Partage ensuite l'adresse de production du formulaire, ou remplace-le par un Webhook relié au formulaire de ton site.
+2. Créez un identifiant Anthropic, un identifiant Gmail, et une application privée HubSpot qui peut lire et écrire les contacts et les tâches (son jeton va dans un identifiant « HubSpot App Token »).
+3. Dans Configuration, décrivez votre offre et votre client idéal, puis réglez le seuil du lead chaud et les e-mails du commercial et de l'administrateur.
+4. Importez `workflow.json`, choisissez votre table et publiez. Partagez l'adresse du formulaire, ou remplacez-le par un Webhook relié à votre site.
 
-Chaque demande consomme un appel à Claude, facturé sur ton compte Anthropic.
+Chaque demande consomme un appel à Claude, facturé sur votre compte Anthropic.
+
+---
+
+Un souci pour l'installer, ou une question ? Je suis disponible sur [elie.koudujob.com](https://elie.koudujob.com) 😉
+
+**Elie LISSODA**

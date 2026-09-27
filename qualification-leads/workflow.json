@@ -2,6 +2,102 @@
   "name": "Qualification de leads entrants",
   "nodes": [
     {
+      "id": "2079bc01-25c4-478a-808e-03352252e4f6",
+      "name": "Présentation",
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        -60,
+        -398
+      ],
+      "parameters": {
+        "content": "## Qualification de leads entrants\nPar **Elie LISSODA**, automatisation marketing · [elie.koudujob.com](https://elie.koudujob.com)\n\nChaque demande de contact est lue, enrichie avec le site du prospect et notée sur 100. Le commercial n'est dérangé que pour les leads chauds.\n\nPour le lancer : connectez Claude, HubSpot et Gmail, créez la table « Leads qualifies », puis publiez le formulaire ou branchez votre site.\n\nUne question ? Je suis disponible sur [elie.koudujob.com](https://elie.koudujob.com) 😉",
+        "color": 2,
+        "width": 600,
+        "height": 336
+      }
+    },
+    {
+      "id": "99148b3f-99a5-4501-ba9f-5d311c1ac310",
+      "name": "Étape 1",
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        -60,
+        179
+      ],
+      "parameters": {
+        "content": "### 1. La demande arrive\nElle est gardée tout de suite, même si la suite échoue.",
+        "color": 7,
+        "width": 864,
+        "height": 305
+      }
+    },
+    {
+      "id": "75b9c393-ac75-4de9-b87f-985b4196bb7e",
+      "name": "Étape 2",
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        820,
+        67
+      ],
+      "parameters": {
+        "content": "### 2. Lire le site du prospect\nSeulement un vrai site public : adresses IP et réseaux internes sont refusés.",
+        "color": 5,
+        "width": 656,
+        "height": 417
+      }
+    },
+    {
+      "id": "6ce541c3-29c0-4847-984a-d2f2d86a8150",
+      "name": "Étape 3",
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        1492,
+        154
+      ],
+      "parameters": {
+        "content": "### 3. Qualifier\nMoitié Claude, qui juge l'adéquation à votre offre, moitié règles. Si Claude ne répond pas, les règles prennent le relais.",
+        "color": 6,
+        "width": 492,
+        "height": 330
+      }
+    },
+    {
+      "id": "5c66b459-bc2b-415c-b50d-6424fd5e8835",
+      "name": "Étape 4",
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        2004,
+        179
+      ],
+      "parameters": {
+        "content": "### 4. Ranger dans HubSpot\nLe contact est créé ou mis à jour, avec son score et ses raisons.",
+        "color": 4,
+        "width": 640,
+        "height": 305
+      }
+    },
+    {
+      "id": "796aed0b-0e45-4e8a-a8e7-8577c1bda743",
+      "name": "Étape 5",
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        2660,
+        -22
+      ],
+      "parameters": {
+        "content": "### 5. Alerter\nLead chaud : une tâche de rappel et un e-mail au commercial. Problème technique : une alerte part.",
+        "color": 3,
+        "width": 668,
+        "height": 650
+      }
+    },
+    {
       "parameters": {
         "formTitle": "Parlons de votre projet",
         "formDescription": "Deux minutes pour décrire votre besoin. Réponse sous 24 h ouvrées.",
@@ -746,70 +842,6 @@
         448
       ],
       "executeOnce": true
-    },
-    {
-      "parameters": {
-        "content": "## Qualification de leads entrants\nChaque demande est gardée, enrichie par le site du prospect, notée sur 100 et poussée dans HubSpot. Un lead chaud crée une tâche de rappel et alerte le commercial.\n\n**Mise en route**\n1. Remplissez **Configuration** : offre, client idéal, e-mails, seuil.\n2. Connectez Claude, HubSpot (application privée, droits contacts et tâches) et Gmail.\n3. Partagez l'URL de production du formulaire, ou remplacez-le par un Webhook relié à votre site.",
-        "height": 608,
-        "width": 856,
-        "color": 5
-      },
-      "id": "0fd9b147-e5d4-4f73-b75e-a994becb5542",
-      "name": "Note : mise en route",
-      "type": "n8n-nodes-base.stickyNote",
-      "typeVersion": 1,
-      "position": [
-        -48,
-        -112
-      ]
-    },
-    {
-      "parameters": {
-        "content": "### Score sur 100\nMoitié Claude (adéquation à votre offre), moitié règles (budget, délai, e-mail pro). Les champs du formulaire sont traités comme des données, jamais comme des consignes.",
-        "height": 376,
-        "width": 484,
-        "color": 4
-      },
-      "id": "e4677cbc-f298-47a1-b1db-e480a4040a2c",
-      "name": "Note : score",
-      "type": "n8n-nodes-base.stickyNote",
-      "typeVersion": 1,
-      "position": [
-        1488,
-        64
-      ]
-    },
-    {
-      "parameters": {
-        "content": "### Suivi et erreurs\nClaude ou HubSpot en panne : le lead reste dans la table, le score repasse sur les règles et une alerte d'anomalie part.",
-        "height": 640,
-        "width": 1504,
-        "color": 6
-      },
-      "id": "d64038d9-fa91-4610-adce-639482da4eff",
-      "name": "Note : suivi et erreurs",
-      "type": "n8n-nodes-base.stickyNote",
-      "typeVersion": 1,
-      "position": [
-        2000,
-        -32
-      ]
-    },
-    {
-      "parameters": {
-        "content": "### Enrichissement\nLe site est lu seulement si c'est un domaine public : adresses IP et réseaux locaux refusés. Sans site, le domaine de l'e-mail pro sert de piste.",
-        "height": 428,
-        "width": 636,
-        "color": 7
-      },
-      "id": "6634081e-6c30-4293-b59f-439cd1b0bb78",
-      "name": "Note : enrichissement",
-      "type": "n8n-nodes-base.stickyNote",
-      "typeVersion": 1,
-      "position": [
-        832,
-        48
-      ]
     }
   ],
   "connections": {

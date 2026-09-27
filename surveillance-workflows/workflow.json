@@ -1,0 +1,725 @@
+{
+  "name": "Surveillance des workflows : erreurs classées, relancées et signalées",
+  "nodes": [
+    {
+      "id": "95118dd0-38e2-4198-b9c7-1aad00322465",
+      "name": "Présentation",
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        -60,
+        -511
+      ],
+      "parameters": {
+        "content": "## Surveillance des workflows\nPar **Elie LISSODA**, automatisation marketing · [elie.koudujob.com](https://elie.koudujob.com)\n\nUn workflow qui plante la nuit ne prévient personne. Celui-ci lit chaque erreur, relance les pannes passagères et vous prévient, sans vous noyer d'alertes.\n\nPour le lancer : connectez Telegram, créez une clé API n8n et la table « Incidents workflows », puis déclarez ce workflow comme Error workflow dans vos autres workflows.\n\nUne question ? Je suis disponible sur [elie.koudujob.com](https://elie.koudujob.com) 😉",
+        "color": 2,
+        "width": 600,
+        "height": 386
+      }
+    },
+    {
+      "id": "2ed5c00b-68bc-4a7d-aa72-a16287bd7a01",
+      "name": "Étape 1",
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        -60,
+        25
+      ],
+      "parameters": {
+        "content": "### 1. Un workflow échoue\nn8n appelle ce workflow à chaque échec.",
+        "color": 7,
+        "width": 460,
+        "height": 305
+      }
+    },
+    {
+      "id": "ebc9b66d-48d3-4978-adc2-749a29011cbf",
+      "name": "Étape 2",
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        420,
+        0
+      ],
+      "parameters": {
+        "content": "### 2. Comprendre la panne\nL'erreur est classée, puis gardée avec le lien vers l'exécution.",
+        "color": 1,
+        "width": 460,
+        "height": 330
+      }
+    },
+    {
+      "id": "0c2a5a15-9573-4e55-bfe4-88621d76e730",
+      "name": "Étape 3",
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        900,
+        -85
+      ],
+      "parameters": {
+        "content": "### 3. Relancer une fois\nUne panne passagère est relancée une seule fois.",
+        "color": 4,
+        "width": 460,
+        "height": 415
+      }
+    },
+    {
+      "id": "a2017521-fc77-4986-ae72-745f0a1632c4",
+      "name": "Étape 4",
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        1380,
+        25
+      ],
+      "parameters": {
+        "content": "### 4. Alerter sans répéter\nLa même panne n'alerte qu'une fois par demi-heure.",
+        "color": 3,
+        "width": 460,
+        "height": 305
+      }
+    },
+    {
+      "id": "8d5aa0e3-f5de-416c-a130-e7f0566eea14",
+      "name": "Étape 5",
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        -60,
+        435
+      ],
+      "parameters": {
+        "content": "### 5. Le bilan du matin\nChaque matin à 8 h, un bilan des incidents récents.",
+        "color": 5,
+        "width": 940,
+        "height": 305
+      }
+    },
+    {
+      "id": "474dfe36-9797-4eba-a016-e4ab3ba83eda",
+      "name": "Étape 6",
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        -60,
+        790
+      ],
+      "parameters": {
+        "content": "### 6. Un seul canal d'alerte\nToutes les alertes passent par ici. Pour changer de canal, c'est le seul endroit à modifier.",
+        "color": 3,
+        "width": 700,
+        "height": 330
+      }
+    },
+    {
+      "id": "d251a231-61ab-4f6c-bf1f-af4295031490",
+      "name": "Quand un workflow échoue",
+      "type": "n8n-nodes-base.errorTrigger",
+      "typeVersion": 1,
+      "position": [
+        0,
+        150
+      ],
+      "parameters": {}
+    },
+    {
+      "id": "dac037fa-bc95-496a-ba07-15affc5d2553",
+      "name": "Configuration",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        240,
+        150
+      ],
+      "parameters": {
+        "mode": "manual",
+        "includeOtherFields": true,
+        "assignments": {
+          "assignments": [
+            {
+              "id": "c-relance",
+              "name": "relance_automatique",
+              "value": true,
+              "type": "boolean"
+            },
+            {
+              "id": "c-fenetre",
+              "name": "fenetre_anti_doublon_min",
+              "value": 30,
+              "type": "number"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "id": "49607233-5856-45b7-ae58-c748c400440e",
+      "name": "Analyser l'erreur",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        480,
+        150
+      ],
+      "parameters": {
+        "mode": "runOnceForAllItems",
+        "language": "javaScript",
+        "jsCode": "const e = $('Quand un workflow échoue').first().json;\nconst cfg = $('Configuration').first().json;\nconst ex = e.execution || {}; const wf = e.workflow || {}; const err = ex.error || {};\nconst msg = String(err.message || err.description || 'Erreur sans message').slice(0, 500);\nconst noeud = (err.node && err.node.name) || ex.lastNodeExecuted || 'inconnu';\nconst code = String(err.httpCode || (err.context && err.context.httpCode) || '');\nlet type = 'autre';\nif (/timeout|ETIMEDOUT|ECONNRESET|ECONNREFUSED|socket hang up|EAI_AGAIN|rate limit|too many requests|overloaded|temporarily/i.test(msg) || /^(429|5\\d\\d)$/.test(code)) type = 'passager';\nelse if (/^(401|403)$/.test(code) || /unauthori[sz]ed|forbidden|credential|invalid api key|authentication/i.test(msg)) type = 'connexion';\nelse if (/^(400|404|422)$/.test(code) || /validation|required|invalid|not found|cannot read prop|undefined/i.test(msg)) type = 'données';\nconst sd = $getWorkflowStaticData('global'); const maintenant = Date.now();\nconst cle = (wf.id || '') + '|' + noeud + '|' + type;\nsd.vus = Object.fromEntries(Object.entries(sd.vus || {}).filter(([, t]) => maintenant - t < 86400000));\nconst fenetre = (Number(cfg.fenetre_anti_doublon_min) || 30) * 60000;\nconst doublon = !!sd.vus[cle] && maintenant - sd.vus[cle] < fenetre;\nif (!doublon) sd.vus[cle] = maintenant;\nconst relancer = type === 'passager' && !!ex.id && !ex.retryOf && cfg.relance_automatique === true;\nlet origine = ''; try { origine = new URL(ex.url).origin; } catch (x) { origine = ''; }\nconst conseils = { passager: 'Incident passager : délai dépassé, limite de débit ou service indisponible.', connexion: 'Connexion refusée : vérifier ou renouveler les identifiants du service.', 'données': 'Donnée manquante ou invalide : vérifier ce que le nœud a reçu.', autre: \"Erreur inattendue : ouvrir l'exécution pour la lire en détail.\" };\nconst esc = s => String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');\nconst lignes = ['<b>Échec : ' + esc(wf.name || 'workflow inconnu') + '</b>', 'Nœud : ' + esc(noeud), 'Type : ' + type + (relancer ? ', relance automatique demandée' : ''), '', esc(msg), '', conseils[type]];\nif (ex.url) lignes.push('<a href=\"' + ex.url + '\">Ouvrir l\\'exécution</a>');\nreturn [{ json: { survenu_le: $now.toISO(), workflow: wf.name || '', noeud, type, message: msg, execution_id: String(ex.id || ''), lien: ex.url || '', relancer, doublon, origine, alerte: lignes.join('\\n') } }];"
+      }
+    },
+    {
+      "id": "57972c63-1921-4729-a190-8ee7b79ced68",
+      "name": "Garder l'incident",
+      "type": "n8n-nodes-base.dataTable",
+      "typeVersion": 1.1,
+      "position": [
+        720,
+        150
+      ],
+      "parameters": {
+        "resource": "row",
+        "operation": "insert",
+        "dataTableId": {
+          "__rl": true,
+          "mode": "list",
+          "value": "",
+          "cachedResultName": "Incidents workflows"
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "survenu_le": "={{ $json.survenu_le }}",
+            "workflow": "={{ $json.workflow }}",
+            "noeud": "={{ $json.noeud }}",
+            "type": "={{ $json.type }}",
+            "message": "={{ $json.message }}",
+            "execution_id": "={{ $json.execution_id }}",
+            "lien": "={{ $json.lien }}",
+            "relance": "={{ $json.relancer }}"
+          },
+          "schema": [
+            {
+              "id": "survenu_le",
+              "displayName": "survenu_le",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "dateTime",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "workflow",
+              "displayName": "workflow",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "noeud",
+              "displayName": "noeud",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "type",
+              "displayName": "type",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "message",
+              "displayName": "message",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "execution_id",
+              "displayName": "execution_id",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "lien",
+              "displayName": "lien",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "relance",
+              "displayName": "relance",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "boolean",
+              "canBeUsedToMatch": true
+            }
+          ]
+        }
+      }
+    },
+    {
+      "id": "3caf7589-8c00-469d-b6d0-847d0d383290",
+      "name": "Relancer ?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        960,
+        150
+      ],
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "loose"
+          },
+          "conditions": [
+            {
+              "leftValue": "={{ $('Analyser l\\'erreur').first().json.relancer }}",
+              "operator": {
+                "type": "boolean",
+                "operation": "true",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        }
+      }
+    },
+    {
+      "id": "0843da5d-edd2-448a-955a-e1204b947b9b",
+      "name": "Relancer l'exécution",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        1200,
+        40
+      ],
+      "parameters": {
+        "method": "POST",
+        "url": "={{ $('Analyser l\\'erreur').first().json.origine }}/api/v1/executions/{{ $('Analyser l\\'erreur').first().json.execution_id }}/retry",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "n8nApi",
+        "sendBody": true,
+        "contentType": "json",
+        "specifyBody": "json",
+        "jsonBody": "{ \"loadWorkflow\": true }",
+        "options": {
+          "timeout": 20000
+        }
+      },
+      "onError": "continueRegularOutput"
+    },
+    {
+      "id": "0147ae40-0315-47bb-b267-b06922de7f86",
+      "name": "Nouvel incident ?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        1440,
+        150
+      ],
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "loose"
+          },
+          "conditions": [
+            {
+              "leftValue": "={{ $('Analyser l\\'erreur').first().json.doublon }}",
+              "operator": {
+                "type": "boolean",
+                "operation": "false",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        }
+      }
+    },
+    {
+      "id": "355fb1b5-c914-4765-b316-2f37d0169672",
+      "name": "Alerter (sous-workflow)",
+      "type": "n8n-nodes-base.executeWorkflow",
+      "typeVersion": 1.3,
+      "position": [
+        1680,
+        150
+      ],
+      "parameters": {
+        "mode": "once",
+        "source": "database",
+        "workflowId": {
+          "__rl": true,
+          "mode": "id",
+          "value": "={{ $workflow.id }}"
+        },
+        "workflowInputs": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "message": "={{ $('Analyser l\\'erreur').first().json.alerte }}"
+          },
+          "matchingColumns": [],
+          "schema": [
+            {
+              "id": "message",
+              "displayName": "message",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "canBeUsedToMatch": true,
+              "type": "string"
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": true
+        },
+        "options": {
+          "waitForSubWorkflow": true
+        }
+      }
+    },
+    {
+      "id": "55e49d39-1108-4c30-8271-feb3a854ea4b",
+      "name": "Chaque matin à 8 h",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.2,
+      "position": [
+        0,
+        560
+      ],
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "field": "days",
+              "triggerAtHour": 8
+            }
+          ]
+        }
+      }
+    },
+    {
+      "id": "263224e3-cac3-4a44-9f5b-200ffe8919b5",
+      "name": "Lire les incidents du jour",
+      "type": "n8n-nodes-base.dataTable",
+      "typeVersion": 1.1,
+      "position": [
+        240,
+        560
+      ],
+      "parameters": {
+        "resource": "row",
+        "operation": "get",
+        "dataTableId": {
+          "__rl": true,
+          "mode": "list",
+          "value": "",
+          "cachedResultName": "Incidents workflows"
+        },
+        "matchType": "allConditions",
+        "filters": {
+          "conditions": [
+            {
+              "keyName": "survenu_le",
+              "condition": "gte",
+              "keyValue": "={{ $now.minus({ days: 1 }).toISO() }}"
+            }
+          ]
+        },
+        "returnAll": true
+      },
+      "alwaysOutputData": true
+    },
+    {
+      "id": "21a6a3a6-1f14-4274-bebe-6825ba5366bb",
+      "name": "Préparer le bilan",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        480,
+        560
+      ],
+      "parameters": {
+        "mode": "runOnceForAllItems",
+        "language": "javaScript",
+        "jsCode": "const rows = $input.all().map(i => i.json).filter(r => r && r.id);\nconst esc = s => String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');\nif (!rows.length) return [{ json: { message: '<b>Bilan des 24 dernières heures</b>\\nAucun incident. Tous les workflows ont tourné sans erreur.' } }];\nconst parWf = {}; const parType = {};\nfor (const r of rows) { parWf[r.workflow || 'inconnu'] = (parWf[r.workflow || 'inconnu'] || 0) + 1; parType[r.type || 'autre'] = (parType[r.type || 'autre'] || 0) + 1; }\nconst top = Object.entries(parWf).sort((a, b) => b[1] - a[1]).slice(0, 8).map(([w, n]) => '• ' + esc(w) + ' : ' + n);\nconst types = Object.entries(parType).map(([t, n]) => t + ' ' + n).join(', ');\nconst relances = rows.filter(r => r.relance).length;\nreturn [{ json: { message: ['<b>Bilan des 24 dernières heures</b>', rows.length + ' incident' + (rows.length > 1 ? 's' : '') + ' (' + types + '), ' + relances + ' relance' + (relances > 1 ? 's' : '') + ' automatique' + (relances > 1 ? 's' : '') + '.', ''].concat(top).join('\\n') } }];"
+      }
+    },
+    {
+      "id": "db8dfbb3-ab44-41c8-b7f1-6e41835f8b29",
+      "name": "Envoyer le bilan (sous-workflow)",
+      "type": "n8n-nodes-base.executeWorkflow",
+      "typeVersion": 1.3,
+      "position": [
+        720,
+        560
+      ],
+      "parameters": {
+        "mode": "once",
+        "source": "database",
+        "workflowId": {
+          "__rl": true,
+          "mode": "id",
+          "value": "={{ $workflow.id }}"
+        },
+        "workflowInputs": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "message": "={{ $json.message }}"
+          },
+          "matchingColumns": [],
+          "schema": [
+            {
+              "id": "message",
+              "displayName": "message",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "canBeUsedToMatch": true,
+              "type": "string"
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": true
+        },
+        "options": {
+          "waitForSubWorkflow": true
+        }
+      }
+    },
+    {
+      "id": "8c4e37f0-5982-4946-b5d2-d20137865486",
+      "name": "Envoyer une alerte",
+      "type": "n8n-nodes-base.executeWorkflowTrigger",
+      "typeVersion": 1.2,
+      "position": [
+        0,
+        940
+      ],
+      "parameters": {
+        "inputSource": "workflowInputs",
+        "workflowInputs": {
+          "values": [
+            {
+              "name": "message",
+              "type": "string"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "id": "04da3903-26e3-461b-806d-f83e983b7d03",
+      "name": "Destinataire",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        240,
+        940
+      ],
+      "parameters": {
+        "mode": "manual",
+        "includeOtherFields": true,
+        "assignments": {
+          "assignments": [
+            {
+              "id": "d-chat",
+              "name": "telegram_chat_id",
+              "value": "",
+              "type": "string"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "id": "1c3c0545-cdb2-4a6d-a33e-0265457700f9",
+      "name": "Envoyer sur Telegram",
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1.2,
+      "position": [
+        480,
+        940
+      ],
+      "parameters": {
+        "resource": "message",
+        "operation": "sendMessage",
+        "chatId": "={{ $json.telegram_chat_id }}",
+        "text": "={{ $json.message }}",
+        "additionalFields": {
+          "appendAttribution": false,
+          "parse_mode": "HTML",
+          "disable_web_page_preview": true
+        }
+      }
+    }
+  ],
+  "connections": {
+    "Quand un workflow échoue": {
+      "main": [
+        [
+          {
+            "node": "Configuration",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Configuration": {
+      "main": [
+        [
+          {
+            "node": "Analyser l'erreur",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Analyser l'erreur": {
+      "main": [
+        [
+          {
+            "node": "Garder l'incident",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Garder l'incident": {
+      "main": [
+        [
+          {
+            "node": "Relancer ?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Relancer ?": {
+      "main": [
+        [
+          {
+            "node": "Relancer l'exécution",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Nouvel incident ?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Relancer l'exécution": {
+      "main": [
+        [
+          {
+            "node": "Nouvel incident ?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Nouvel incident ?": {
+      "main": [
+        [
+          {
+            "node": "Alerter (sous-workflow)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Chaque matin à 8 h": {
+      "main": [
+        [
+          {
+            "node": "Lire les incidents du jour",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Lire les incidents du jour": {
+      "main": [
+        [
+          {
+            "node": "Préparer le bilan",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Préparer le bilan": {
+      "main": [
+        [
+          {
+            "node": "Envoyer le bilan (sous-workflow)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Envoyer une alerte": {
+      "main": [
+        [
+          {
+            "node": "Destinataire",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Destinataire": {
+      "main": [
+        [
+          {
+            "node": "Envoyer sur Telegram",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1"
+  }
+}

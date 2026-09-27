@@ -1,0 +1,875 @@
+{
+  "name": "Extraction de documents : factures et devis contrôlés par Claude",
+  "nodes": [
+    {
+      "id": "8f920fcc-b66f-4f1d-8f46-508160eb99a4",
+      "name": "Présentation",
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        -60,
+        -401
+      ],
+      "parameters": {
+        "content": "## Extraction de factures et de devis\nPar **Elie LISSODA**, automatisation marketing · [elie.koudujob.com](https://elie.koudujob.com)\n\nLes factures et les devis arrivent en PDF. Ici, Claude les lit, le code vérifie chaque chiffre, et vous n'êtes prévenu que si quelque chose cloche.\n\nPour le lancer : connectez Claude et Telegram, créez la table « Documents extraits », puis déposez facture-exemple.pdf pour essayer.\n\nUne question ? Je suis disponible sur [elie.koudujob.com](https://elie.koudujob.com) 😉",
+        "color": 2,
+        "width": 600,
+        "height": 336
+      }
+    },
+    {
+      "id": "234002cf-33ad-4c3c-9ed6-8e71d4bc8718",
+      "name": "Étape 1",
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        -60,
+        -25
+      ],
+      "parameters": {
+        "content": "### 1. Recevoir le document\nPar le formulaire, ou par API depuis un autre outil.",
+        "color": 7,
+        "width": 700,
+        "height": 525
+      }
+    },
+    {
+      "id": "f67abee5-10ab-466e-97d5-a08e41122cff",
+      "name": "Étape 2",
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        660,
+        60
+      ],
+      "parameters": {
+        "content": "### 2. Écarter les scans\nUn scan sans texte est refusé avec une consigne claire, plutôt que lu de travers.",
+        "color": 1,
+        "width": 460,
+        "height": 580
+      }
+    },
+    {
+      "id": "55060b42-44bb-4c9f-b275-4995039961f6",
+      "name": "Étape 3",
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        1140,
+        60
+      ],
+      "parameters": {
+        "content": "### 3. Lire la facture\nClaude relève fournisseur, SIRET, montants, IBAN et lignes, sans rien deviner.",
+        "color": 6,
+        "width": 584,
+        "height": 540
+      }
+    },
+    {
+      "id": "426fda72-8536-4693-865c-913c3409aaea",
+      "name": "Étape 4",
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        1740,
+        85
+      ],
+      "parameters": {
+        "content": "### 4. Tout vérifier\nTotaux, TVA, SIRET, IBAN, échéance et doublon sont recontrôlés en code.",
+        "color": 1,
+        "width": 700,
+        "height": 305
+      }
+    },
+    {
+      "id": "9e11e92d-7427-4480-9fd2-6f6ddfdb59fe",
+      "name": "Étape 5",
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        2460,
+        60
+      ],
+      "parameters": {
+        "content": "### 5. Ranger\nChaque document devient une ligne de la table.",
+        "color": 4,
+        "width": 220,
+        "height": 330
+      }
+    },
+    {
+      "id": "fde50a37-e248-4311-b5d3-324b7cfdca5f",
+      "name": "Étape 6",
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        2700,
+        -25
+      ],
+      "parameters": {
+        "content": "### 6. Prévenir si besoin\nUne alerte Telegram part seulement quand il faut regarder.",
+        "color": 3,
+        "width": 700,
+        "height": 415
+      }
+    },
+    {
+      "id": "62efbd4d-b6a6-499c-805c-c94e705ae50b",
+      "name": "Déposer un document",
+      "type": "n8n-nodes-base.formTrigger",
+      "typeVersion": 2.6,
+      "position": [
+        240,
+        320
+      ],
+      "parameters": {
+        "formTitle": "Extraction de facture ou de devis",
+        "formDescription": "Déposez un PDF : les données sont extraites, contrôlées et rangées dans une table.",
+        "formFields": {
+          "values": [
+            {
+              "fieldLabel": "Facture ou devis (PDF)",
+              "fieldName": "data",
+              "fieldType": "file",
+              "multipleFiles": false,
+              "acceptFileTypes": ".pdf",
+              "requiredField": true
+            }
+          ]
+        },
+        "responseMode": "lastNode",
+        "options": {
+          "appendAttribution": false,
+          "buttonLabel": "Analyser le document"
+        }
+      }
+    },
+    {
+      "id": "f3342105-0fb4-45b4-a64e-ce9e25dddb65",
+      "name": "Lire le PDF",
+      "type": "n8n-nodes-base.extractFromFile",
+      "typeVersion": 1.1,
+      "position": [
+        480,
+        210
+      ],
+      "parameters": {
+        "operation": "pdf",
+        "options": {
+          "keepSource": "both"
+        }
+      }
+    },
+    {
+      "id": "9128f393-d7b2-4982-b77d-4331468b7683",
+      "name": "Recevoir un document par API",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2.1,
+      "position": [
+        0,
+        100
+      ],
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "extraction-documents",
+        "responseMode": "lastNode",
+        "options": {}
+      }
+    },
+    {
+      "id": "9f5c5688-8ca3-4e07-b9a1-e93b31a86e36",
+      "name": "Convertir le fichier reçu",
+      "type": "n8n-nodes-base.convertToFile",
+      "typeVersion": 1.1,
+      "position": [
+        240,
+        100
+      ],
+      "parameters": {
+        "operation": "toBinary",
+        "sourceProperty": "body.fichier_base64",
+        "options": {
+          "fileName": "={{ $json.body.nom_fichier || \"document.pdf\" }}",
+          "mimeType": "application/pdf"
+        }
+      }
+    },
+    {
+      "id": "5dd83da3-d467-4af0-8134-c5d24945beb4",
+      "name": "Préparer le texte",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        720,
+        210
+      ],
+      "parameters": {
+        "mode": "runOnceForEachItem",
+        "language": "javaScript",
+        "jsCode": "const texte = String($json.text || '').replace(/[ \\t]+/g, ' ').replace(/\\n{3,}/g, '\\n\\n').trim();\nconst b = $input.item.binary && $input.item.binary.data;\nconst fichier = (b && b.fileName) || 'document.pdf';\nreturn { json: { texte: texte.slice(0, 20000), fichier, lisible: texte.replace(/\\s/g, '').length >= 40 } };"
+      }
+    },
+    {
+      "id": "72a299ab-404f-43c2-aa35-ba86f7df56c5",
+      "name": "Texte lisible ?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        960,
+        210
+      ],
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict"
+          },
+          "conditions": [
+            {
+              "leftValue": "={{ $json.lisible }}",
+              "operator": {
+                "type": "boolean",
+                "operation": "true",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        }
+      }
+    },
+    {
+      "id": "66c08fe3-6ee7-4921-b9aa-7022e2e82fc1",
+      "name": "Configuration",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        1200,
+        210
+      ],
+      "parameters": {
+        "mode": "manual",
+        "includeOtherFields": true,
+        "assignments": {
+          "assignments": [
+            {
+              "id": "cfg-seuil",
+              "name": "seuil_validation",
+              "value": 5000,
+              "type": "number"
+            },
+            {
+              "id": "cfg-ecart",
+              "name": "ecart_tolere",
+              "value": 0.05,
+              "type": "number"
+            },
+            {
+              "id": "cfg-tg",
+              "name": "telegram_chat_id",
+              "value": "",
+              "type": "string"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "id": "b2c186ea-7b99-4046-a8c2-46a265468806",
+      "name": "Extraire les données",
+      "type": "@n8n/n8n-nodes-langchain.informationExtractor",
+      "typeVersion": 1.2,
+      "position": [
+        1440,
+        210
+      ],
+      "parameters": {
+        "text": "={{ $json.texte }}",
+        "schemaType": "manual",
+        "inputSchema": "{\"type\":\"object\",\"properties\":{\"type_document\":{\"type\":\"string\",\"enum\":[\"facture\",\"devis\",\"avoir\",\"autre\"]},\"fournisseur\":{\"type\":\"string\",\"description\":\"Raison sociale de l'émetteur du document\"},\"siret\":{\"type\":\"string\",\"description\":\"SIRET de l'émetteur, 14 chiffres sans espace, vide si absent\"},\"numero\":{\"type\":\"string\",\"description\":\"Numéro de la facture ou du devis\"},\"date_emission\":{\"type\":\"string\",\"description\":\"Date au format AAAA-MM-JJ\"},\"date_echeance\":{\"type\":\"string\",\"description\":\"Date d'échéance ou de validité au format AAAA-MM-JJ, vide si absente\"},\"devise\":{\"type\":\"string\",\"description\":\"Code ISO de la devise, EUR par défaut\"},\"montant_ht\":{\"type\":\"number\"},\"tva\":{\"type\":\"number\",\"description\":\"Montant total de TVA\"},\"montant_ttc\":{\"type\":\"number\"},\"iban\":{\"type\":\"string\",\"description\":\"IBAN indiqué pour le paiement, vide si absent\"},\"lignes\":{\"type\":\"array\",\"items\":{\"type\":\"object\",\"properties\":{\"designation\":{\"type\":\"string\"},\"quantite\":{\"type\":\"number\"},\"prix_unitaire\":{\"type\":\"number\"},\"total_ht\":{\"type\":\"number\"}}}}},\"required\":[\"type_document\",\"fournisseur\",\"numero\",\"montant_ttc\"]}",
+        "options": {
+          "systemPromptTemplate": "Tu extrais les données d'une facture ou d'un devis rédigé en français. Recopie les valeurs telles qu'elles figurent dans le document et n'invente rien : un champ absent reste vide, un montant absent vaut 0. Les montants sont des nombres avec un point décimal, sans symbole. Les dates sont au format AAAA-MM-JJ."
+        }
+      }
+    },
+    {
+      "id": "774b0598-897f-444b-941c-c81563d1078e",
+      "name": "Claude",
+      "type": "@n8n/n8n-nodes-langchain.lmChatAnthropic",
+      "typeVersion": 1.6,
+      "position": [
+        1520,
+        440
+      ],
+      "parameters": {
+        "model": {
+          "__rl": true,
+          "mode": "list",
+          "value": "claude-sonnet-5",
+          "cachedResultName": "Claude Sonnet 5"
+        },
+        "options": {}
+      }
+    },
+    {
+      "id": "0bfdd590-12b9-47ec-95b9-f1c3c7355a53",
+      "name": "Contrôler le document",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1800,
+        210
+      ],
+      "parameters": {
+        "mode": "runOnceForEachItem",
+        "language": "javaScript",
+        "jsCode": "const cfg = $('Configuration').item.json;\nconst d = $json.output || {};\nconst n = v => { const x = typeof v === 'number' ? v : parseFloat(String(v ?? '').replace(/\\s/g, '').replace(',', '.')); return Number.isFinite(x) ? Math.round(x * 100) / 100 : 0; };\nconst ht = n(d.montant_ht), tva = n(d.tva), ttc = n(d.montant_ttc);\nconst lignes = Array.isArray(d.lignes) ? d.lignes : [];\nconst tol = Number(cfg.ecart_tolere) || 0.05;\nconst devise = d.devise || 'EUR';\nconst anomalies = [];\nif (!d.numero) anomalies.push('Numéro de document absent.');\nif (!d.fournisseur) anomalies.push('Fournisseur non identifié.');\nif (ttc <= 0) anomalies.push('Montant TTC absent.');\nif (ht > 0 && ttc > 0 && Math.abs(ht + tva - ttc) > tol) anomalies.push('HT + TVA = ' + (ht + tva).toFixed(2) + ', mais le TTC indiqué est ' + ttc.toFixed(2) + '.');\nconst sommeLignes = Math.round(lignes.reduce((s, l) => s + n(l.total_ht), 0) * 100) / 100;\nif (lignes.length && ht > 0 && Math.abs(sommeLignes - ht) > tol) anomalies.push('La somme des lignes (' + sommeLignes.toFixed(2) + ') ne correspond pas au HT (' + ht.toFixed(2) + ').');\nif (ht > 0 && tva > 0) { const taux = tva / ht * 100; if (![20, 10, 5.5, 2.1].some(t => Math.abs(taux - t) < 0.3)) anomalies.push('Taux de TVA inhabituel : ' + taux.toFixed(1) + ' %.'); }\nconst siret = String(d.siret || '').replace(/\\s/g, '');\nconst luhn = s => { let sum = 0; for (let i = 0; i < s.length; i++) { let k = +s[s.length - 1 - i]; if (i % 2) { k *= 2; if (k > 9) k -= 9; } sum += k; } return sum % 10 === 0; };\nif (siret && !(/^\\d{14}$/.test(siret) && luhn(siret))) anomalies.push('SIRET invalide : ' + siret + '.');\nconst iban = String(d.iban || '').replace(/\\s/g, '').toUpperCase();\nconst ibanValide = s => { if (!/^[A-Z]{2}\\d{2}[A-Z0-9]{10,30}$/.test(s)) return false; const r = (s.slice(4) + s.slice(0, 4)).replace(/[A-Z]/g, c => String(c.charCodeAt(0) - 55)); let m = 0; for (const ch of r) m = (m * 10 + Number(ch)) % 97; return m === 1; };\nif (iban && !ibanValide(iban)) anomalies.push('IBAN invalide : à vérifier avant tout paiement.');\nif (d.type_document === 'facture' && d.date_echeance && d.date_echeance < $now.toISODate()) anomalies.push('Échéance dépassée depuis le ' + d.date_echeance + '.');\nconst seuil = Number(cfg.seuil_validation) || 0;\nif (seuil > 0 && ttc >= seuil) anomalies.push('Montant au-dessus du seuil de validation (' + seuil + ' ' + devise + ').');\nreturn { json: { fichier: cfg.fichier, type_document: d.type_document || 'autre', fournisseur: d.fournisseur || '', siret, numero: String(d.numero || ''), date_emission: d.date_emission || '', date_echeance: d.date_echeance || '', devise, montant_ht: ht, tva, montant_ttc: ttc, iban, lignes: JSON.stringify(lignes), anomalies } };"
+      }
+    },
+    {
+      "id": "53723e95-069d-4b3c-a4f9-d9961533fd5b",
+      "name": "Chercher un doublon",
+      "type": "n8n-nodes-base.dataTable",
+      "typeVersion": 1.1,
+      "position": [
+        2040,
+        210
+      ],
+      "parameters": {
+        "resource": "row",
+        "operation": "get",
+        "dataTableId": {
+          "__rl": true,
+          "mode": "list",
+          "value": "",
+          "cachedResultName": "Documents extraits"
+        },
+        "matchType": "allConditions",
+        "filters": {
+          "conditions": [
+            {
+              "keyName": "numero",
+              "condition": "eq",
+              "keyValue": "={{ $json.numero }}"
+            },
+            {
+              "keyName": "fournisseur",
+              "condition": "eq",
+              "keyValue": "={{ $json.fournisseur }}"
+            }
+          ]
+        },
+        "returnAll": false,
+        "limit": 1
+      },
+      "alwaysOutputData": true
+    },
+    {
+      "id": "0c4481b2-5904-4ba9-8258-e7967f68b4ea",
+      "name": "Consolider",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        2280,
+        210
+      ],
+      "parameters": {
+        "mode": "runOnceForAllItems",
+        "language": "javaScript",
+        "jsCode": "const doc = $('Contrôler le document').first().json;\nconst anomalies = [...doc.anomalies];\nconst doublon = !!doc.numero && $input.all().some(i => i.json && i.json.id);\nif (doublon) anomalies.unshift('Déjà reçu : même numéro et même fournisseur.');\nconst statut = doublon ? 'doublon' : (anomalies.length ? 'à vérifier' : 'conforme');\nconst libelle = { facture: 'Facture', devis: 'Devis', avoir: 'Avoir' }[doc.type_document] || 'Document';\nconst titre = libelle + ' ' + (doc.numero || 'sans numéro') + ' de ' + (doc.fournisseur || 'fournisseur inconnu');\nconst esc = s => String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');\nconst message = ['<b>' + esc(statut === 'doublon' ? 'Doublon détecté' : 'Document à vérifier') + '</b>', esc(titre), 'TTC : ' + doc.montant_ttc.toFixed(2) + ' ' + doc.devise, ''].concat(anomalies.map(a => '• ' + esc(a))).join('\\n');\nreturn [{ json: { ...doc, anomalies: anomalies.join(' '), statut, titre, message, recu_le: $now.toISO() } }];"
+      }
+    },
+    {
+      "id": "d4bf689a-99d6-438b-87f1-59dd1899c4a3",
+      "name": "Enregistrer le document",
+      "type": "n8n-nodes-base.dataTable",
+      "typeVersion": 1.1,
+      "position": [
+        2520,
+        210
+      ],
+      "parameters": {
+        "resource": "row",
+        "operation": "insert",
+        "dataTableId": {
+          "__rl": true,
+          "mode": "list",
+          "value": "",
+          "cachedResultName": "Documents extraits"
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "recu_le": "={{ $json.recu_le }}",
+            "fichier": "={{ $json.fichier }}",
+            "type_document": "={{ $json.type_document }}",
+            "fournisseur": "={{ $json.fournisseur }}",
+            "siret": "={{ $json.siret }}",
+            "numero": "={{ $json.numero }}",
+            "date_emission": "={{ $json.date_emission }}",
+            "date_echeance": "={{ $json.date_echeance }}",
+            "montant_ht": "={{ $json.montant_ht }}",
+            "tva": "={{ $json.tva }}",
+            "montant_ttc": "={{ $json.montant_ttc }}",
+            "devise": "={{ $json.devise }}",
+            "iban": "={{ $json.iban }}",
+            "statut": "={{ $json.statut }}",
+            "anomalies": "={{ $json.anomalies }}",
+            "lignes": "={{ $json.lignes }}"
+          },
+          "schema": [
+            {
+              "id": "recu_le",
+              "displayName": "recu_le",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "dateTime",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "fichier",
+              "displayName": "fichier",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "type_document",
+              "displayName": "type_document",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "fournisseur",
+              "displayName": "fournisseur",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "siret",
+              "displayName": "siret",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "numero",
+              "displayName": "numero",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "date_emission",
+              "displayName": "date_emission",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "date_echeance",
+              "displayName": "date_echeance",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "montant_ht",
+              "displayName": "montant_ht",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "number",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "tva",
+              "displayName": "tva",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "number",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "montant_ttc",
+              "displayName": "montant_ttc",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "number",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "devise",
+              "displayName": "devise",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "iban",
+              "displayName": "iban",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "statut",
+              "displayName": "statut",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "anomalies",
+              "displayName": "anomalies",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "lignes",
+              "displayName": "lignes",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            }
+          ]
+        }
+      }
+    },
+    {
+      "id": "2bd7fe53-f637-45b4-a6e4-3b95eb6fe195",
+      "name": "À signaler ?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        2760,
+        210
+      ],
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "loose"
+          },
+          "conditions": [
+            {
+              "leftValue": "={{ $('Consolider').first().json.statut }}",
+              "operator": {
+                "type": "string",
+                "operation": "notEquals"
+              },
+              "rightValue": "conforme"
+            },
+            {
+              "leftValue": "={{ $('Configuration').first().json.telegram_chat_id }}",
+              "operator": {
+                "type": "string",
+                "operation": "notEmpty",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        }
+      }
+    },
+    {
+      "id": "2290d067-61bd-4a5d-84d4-984f172f245d",
+      "name": "Signaler sur Telegram",
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1.2,
+      "position": [
+        3000,
+        100
+      ],
+      "parameters": {
+        "resource": "message",
+        "operation": "sendMessage",
+        "chatId": "={{ $('Configuration').first().json.telegram_chat_id }}",
+        "text": "={{ $('Consolider').first().json.message }}",
+        "additionalFields": {
+          "appendAttribution": false,
+          "parse_mode": "HTML",
+          "disable_web_page_preview": true
+        }
+      }
+    },
+    {
+      "id": "397a1686-e083-420d-9bcd-e2791dbbe8db",
+      "name": "Réponse",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        3240,
+        210
+      ],
+      "parameters": {
+        "mode": "manual",
+        "includeOtherFields": false,
+        "assignments": {
+          "assignments": [
+            {
+              "id": "r-resultat",
+              "name": "resultat",
+              "value": "={{ $('Consolider').first().json.titre }} : {{ $('Consolider').first().json.statut }}",
+              "type": "string"
+            },
+            {
+              "id": "r-ttc",
+              "name": "montant_ttc",
+              "value": "={{ $('Consolider').first().json.montant_ttc }} {{ $('Consolider').first().json.devise }}",
+              "type": "string"
+            },
+            {
+              "id": "r-anomalies",
+              "name": "anomalies",
+              "value": "={{ $('Consolider').first().json.anomalies || 'Aucune' }}",
+              "type": "string"
+            }
+          ]
+        }
+      },
+      "executeOnce": true
+    },
+    {
+      "id": "99dbfa62-4965-4889-aa2b-3670efcd02a9",
+      "name": "Réponse : PDF sans texte",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        960,
+        460
+      ],
+      "parameters": {
+        "mode": "manual",
+        "includeOtherFields": false,
+        "assignments": {
+          "assignments": [
+            {
+              "id": "i-resultat",
+              "name": "resultat",
+              "value": "Ce PDF ne contient pas de texte lisible : c'est probablement un scan. Passez-le d'abord dans un outil de reconnaissance de caractères, puis déposez-le à nouveau.",
+              "type": "string"
+            }
+          ]
+        }
+      }
+    }
+  ],
+  "connections": {
+    "Déposer un document": {
+      "main": [
+        [
+          {
+            "node": "Lire le PDF",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Lire le PDF": {
+      "main": [
+        [
+          {
+            "node": "Préparer le texte",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Recevoir un document par API": {
+      "main": [
+        [
+          {
+            "node": "Convertir le fichier reçu",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Convertir le fichier reçu": {
+      "main": [
+        [
+          {
+            "node": "Lire le PDF",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Préparer le texte": {
+      "main": [
+        [
+          {
+            "node": "Texte lisible ?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Texte lisible ?": {
+      "main": [
+        [
+          {
+            "node": "Configuration",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Réponse : PDF sans texte",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Configuration": {
+      "main": [
+        [
+          {
+            "node": "Extraire les données",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Extraire les données": {
+      "main": [
+        [
+          {
+            "node": "Contrôler le document",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Claude": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "Extraire les données",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Contrôler le document": {
+      "main": [
+        [
+          {
+            "node": "Chercher un doublon",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Chercher un doublon": {
+      "main": [
+        [
+          {
+            "node": "Consolider",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Consolider": {
+      "main": [
+        [
+          {
+            "node": "Enregistrer le document",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Enregistrer le document": {
+      "main": [
+        [
+          {
+            "node": "À signaler ?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "À signaler ?": {
+      "main": [
+        [
+          {
+            "node": "Signaler sur Telegram",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Réponse",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Signaler sur Telegram": {
+      "main": [
+        [
+          {
+            "node": "Réponse",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1"
+  }
+}

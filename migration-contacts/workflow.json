@@ -2,6 +2,86 @@
   "name": "Migration de contacts entre deux outils",
   "nodes": [
     {
+      "id": "d17640b1-6372-4a76-ad89-2229ab507a8b",
+      "name": "Présentation",
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        -60,
+        -431
+      ],
+      "parameters": {
+        "content": "## Migration de contacts entre deux outils\nPar **Elie LISSODA**, automatisation marketing · [elie.koudujob.com](https://elie.koudujob.com)\n\nChanger d'outil sans emporter les erreurs de l'ancien. Les contacts sont nettoyés, contrôlés, testés à blanc, puis migrés avec un rapport à chaque passage.\n\nPour le lancer : créez les trois tables décrites dans le README, lancez en mode test, lisez le rapport, puis passez en réel.\n\nUne question ? Je suis disponible sur [elie.koudujob.com](https://elie.koudujob.com) 😉",
+        "color": 2,
+        "width": 600,
+        "height": 361
+      }
+    },
+    {
+      "id": "2ca31fec-21a5-4466-9acd-1224f9882e1c",
+      "name": "Étape 1",
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        -60,
+        175
+      ],
+      "parameters": {
+        "content": "### 1. Préparer\nMode test ou réel, et correspondance des champs.",
+        "color": 7,
+        "width": 460,
+        "height": 305
+      }
+    },
+    {
+      "id": "26085e9e-77b2-4ed0-b0b0-47789d75834c",
+      "name": "Étape 2",
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        420,
+        150
+      ],
+      "parameters": {
+        "content": "### 2. Lire et nettoyer\nE-mails, téléphones, dates et consentements sont remis au propre. Un consentement illisible vaut refus.",
+        "color": 5,
+        "width": 460,
+        "height": 330
+      }
+    },
+    {
+      "id": "ffb68d03-255e-469e-876d-03a63c880d5f",
+      "name": "Étape 3",
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        900,
+        -30
+      ],
+      "parameters": {
+        "content": "### 3. Écrire dans la cible\nSeuls les contacts valides passent. En mode test, rien n'est écrit.",
+        "color": 4,
+        "width": 460,
+        "height": 330
+      }
+    },
+    {
+      "id": "101f3a94-0a26-4c01-a644-d6267f741125",
+      "name": "Étape 4",
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        900,
+        330
+      ],
+      "parameters": {
+        "content": "### 4. Le rapport\nValides, rejetés avec leur motif, doublons : tout est noté.",
+        "color": 1,
+        "width": 460,
+        "height": 330
+      }
+    },
+    {
       "parameters": {},
       "id": "907d0424-ba06-4e2e-9cae-1456a2185523",
       "name": "Lancer la migration",
@@ -9,7 +89,7 @@
       "typeVersion": 1,
       "position": [
         0,
-        192
+        300
       ]
     },
     {
@@ -49,8 +129,8 @@
       "type": "n8n-nodes-base.set",
       "typeVersion": 3.4,
       "position": [
-        224,
-        192
+        240,
+        300
       ]
     },
     {
@@ -69,8 +149,8 @@
       "type": "n8n-nodes-base.dataTable",
       "typeVersion": 1.1,
       "position": [
-        448,
-        192
+        480,
+        300
       ]
     },
     {
@@ -82,8 +162,8 @@
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
       "position": [
-        672,
-        192
+        720,
+        300
       ]
     },
     {
@@ -114,8 +194,8 @@
       "type": "n8n-nodes-base.filter",
       "typeVersion": 2.2,
       "position": [
-        896,
-        96
+        960,
+        120
       ]
     },
     {
@@ -287,8 +367,8 @@
       "type": "n8n-nodes-base.dataTable",
       "typeVersion": 1.1,
       "position": [
-        1344,
-        0
+        1200,
+        120
       ]
     },
     {
@@ -300,8 +380,8 @@
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
       "position": [
-        896,
-        288
+        960,
+        480
       ],
       "executeOnce": true
     },
@@ -417,8 +497,8 @@
       "type": "n8n-nodes-base.dataTable",
       "typeVersion": 1.1,
       "position": [
-        1120,
-        288
+        1200,
+        480
       ]
     }
   ],

@@ -1,0 +1,650 @@
+{
+  "name": "Signaux d'achat : comptes chauds détectés, notés et envoyés dans HubSpot",
+  "nodes": [
+    {
+      "id": "a4d852ca-0eb1-4e13-b147-2e31edd87389",
+      "name": "Présentation",
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        -60,
+        -535
+      ],
+      "parameters": {
+        "content": "## Signaux d'achat\nPar **Elie LISSODA**, automatisation marketing · [elie.koudujob.com](https://elie.koudujob.com)\n\nUne entreprise qui lève des fonds, recrute ou change de dirigeant est souvent prête à acheter. Ce workflow surveille vos comptes cibles et dit chaque lundi au commercial lesquels appeler, et pourquoi.\n\nPour le lancer : connectez Perplexity, Claude, HubSpot et Telegram, créez la table « Signaux d'achat », puis collez vos comptes dans Configuration.\n\nUne question ? Je suis disponible sur [elie.koudujob.com](https://elie.koudujob.com) 😉",
+        "color": 2,
+        "width": 600,
+        "height": 361
+      }
+    },
+    {
+      "id": "f54ccf7e-7254-4622-8fd1-7fba9cbff512",
+      "name": "Étape 1",
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        -60,
+        -134
+      ],
+      "parameters": {
+        "content": "### 1. Chaque lundi à 7 h\nOu à la demande avec le bouton. Comptes, offre et score minimum se règlent dans Configuration.",
+        "color": 7,
+        "width": 432,
+        "height": 522
+      }
+    },
+    {
+      "id": "530be8dd-a1d5-4d56-ac1b-d891a54b8d79",
+      "name": "Étape 2",
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        388,
+        -38
+      ],
+      "parameters": {
+        "content": "### 2. Lire l'actualité des comptes\nPerplexity cherche ce qui s'est passé ces 30 derniers jours. Chaque fait arrive daté et sourcé.",
+        "color": 5,
+        "width": 432,
+        "height": 330
+      }
+    },
+    {
+      "id": "88e5c1aa-8e03-47f5-81fd-b3ab84728e8d",
+      "name": "Étape 3",
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        836,
+        -38
+      ],
+      "parameters": {
+        "content": "### 3. Noter chaque compte\nClaude compare ces faits à votre offre, note le compte sur 100 et propose l'angle d'approche.",
+        "color": 6,
+        "width": 560,
+        "height": 534
+      }
+    },
+    {
+      "id": "395bc0df-30f2-48fe-89f6-c5a387e07468",
+      "name": "Étape 4",
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        1412,
+        -38
+      ],
+      "parameters": {
+        "content": "### 4. Tout garder\nChaque compte analysé reste dans la table, même quand il ne se passe rien.",
+        "color": 1,
+        "width": 432,
+        "height": 330
+      }
+    },
+    {
+      "id": "f8b7eea8-d0d3-431b-994e-153c9f63caa6",
+      "name": "Étape 5",
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        1860,
+        -38
+      ],
+      "parameters": {
+        "content": "### 5. Créer la tâche\nAu-dessus du score minimum, le commercial reçoit une tâche dans HubSpot.",
+        "color": 4,
+        "width": 432,
+        "height": 330
+      }
+    },
+    {
+      "id": "9a51e0d5-79e1-45b5-94f4-1574aee3f81f",
+      "name": "Étape 6",
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        2308,
+        -38
+      ],
+      "parameters": {
+        "content": "### 6. Prévenir l'équipe\nUn message Telegram résume les comptes chauds de la semaine.",
+        "color": 3,
+        "width": 444,
+        "height": 330
+      }
+    },
+    {
+      "id": "5817a944-4727-4862-b35d-a239e3ddd96c",
+      "name": "Chaque lundi à 7 h",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.2,
+      "position": [
+        0,
+        16
+      ],
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "field": "weeks",
+              "triggerAtDay": [
+                1
+              ],
+              "triggerAtHour": 7
+            }
+          ]
+        }
+      }
+    },
+    {
+      "id": "39d9a06c-9900-4ff8-9962-69ae4a9c4548",
+      "name": "Configuration",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        224,
+        112
+      ],
+      "parameters": {
+        "mode": "manual",
+        "includeOtherFields": false,
+        "assignments": {
+          "assignments": [
+            {
+              "id": "c-comptes",
+              "name": "comptes",
+              "value": "Alan | alan.com\nPayFit | payfit.com\nSwile | swile.co",
+              "type": "string"
+            },
+            {
+              "id": "c-offre",
+              "name": "offre",
+              "value": "Automatisation marketing et commerciale avec n8n et l'IA : CRM tenu à jour, prospection personnalisée, reporting automatique.",
+              "type": "string"
+            },
+            {
+              "id": "c-score",
+              "name": "score_minimum",
+              "value": 60,
+              "type": "number"
+            },
+            {
+              "id": "c-tg",
+              "name": "telegram_chat_id",
+              "value": "",
+              "type": "string"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "id": "bbb4a673-7a25-4abe-b6ca-82e73e45b926",
+      "name": "Une ligne par compte",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        448,
+        112
+      ],
+      "parameters": {
+        "mode": "runOnceForAllItems",
+        "language": "javaScript",
+        "jsCode": "const cfg = $('Configuration').first().json;\nreturn String(cfg.comptes || '').split('\\n').map(l => l.split('|').map(s => s.trim())).filter(([n]) => n).map(([entreprise, domaine]) => ({ json: { entreprise, domaine: domaine || '' } }));"
+      }
+    },
+    {
+      "id": "d2478099-a766-47c5-823a-3b6e2f51e8d4",
+      "name": "Chercher les signaux (Perplexity)",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        672,
+        112
+      ],
+      "parameters": {
+        "method": "POST",
+        "url": "https://api.perplexity.ai/chat/completions",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "perplexityApi",
+        "sendBody": true,
+        "contentType": "json",
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({ model: \"sonar\", search_recency_filter: \"month\", messages: [ { role: \"system\", content: \"Tu es analyste commercial. Réponds en français, uniquement avec des faits datés et sourcés, sans spéculation.\" }, { role: \"user\", content: \"Quels signaux d'achat récents, sur les 30 derniers jours, pour l'entreprise \" + $json.entreprise + \" (\" + $json.domaine + \") : levée de fonds, recrutements commerciaux ou marketing, nouveau dirigeant, ouverture de bureau ou de pays, lancement de produit, rachat ? Donne chaque fait avec sa date et sa source. S'il n'y a rien, dis-le simplement.\" } ] }) }}",
+        "options": {
+          "timeout": 60000,
+          "batching": {
+            "batch": {
+              "batchSize": 1,
+              "batchInterval": 1500
+            }
+          }
+        }
+      },
+      "retryOnFail": true
+    },
+    {
+      "id": "18830ef7-6321-4057-bcdc-5d675c347343",
+      "name": "Préparer l'analyse",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        896,
+        112
+      ],
+      "parameters": {
+        "mode": "runOnceForEachItem",
+        "language": "javaScript",
+        "jsCode": "const compte = $('Une ligne par compte').item.json;\nconst cfg = $('Configuration').first().json;\nconst texte = (($json.choices || [])[0] || {}).message ? $json.choices[0].message.content : '';\nconst sources = Array.isArray($json.citations) ? $json.citations.slice(0, 8) : [];\nreturn { json: { ...compte, faits: texte || 'Aucun fait trouvé.', sources: sources.join('\\n'), consigne: 'Entreprise : ' + compte.entreprise + ' (' + compte.domaine + ')\\nNotre offre : ' + cfg.offre + '\\n\\nFaits trouvés :\\n' + (texte || 'Aucun fait trouvé.') + '\\n\\nSources :\\n' + sources.join('\\n') } };"
+      }
+    },
+    {
+      "id": "333cd919-fb2c-4459-b454-d5f7c67c9d1a",
+      "name": "Qualifier les signaux",
+      "type": "@n8n/n8n-nodes-langchain.informationExtractor",
+      "typeVersion": 1.2,
+      "position": [
+        1120,
+        112
+      ],
+      "parameters": {
+        "text": "={{ $json.consigne }}",
+        "schemaType": "manual",
+        "inputSchema": "{\"type\":\"object\",\"properties\":{\"signaux\":{\"type\":\"array\",\"items\":{\"type\":\"object\",\"properties\":{\"type\":{\"type\":\"string\",\"enum\":[\"levee_de_fonds\",\"recrutement\",\"nouveau_dirigeant\",\"expansion\",\"lancement_produit\",\"rachat\",\"autre\"]},\"resume\":{\"type\":\"string\"},\"date\":{\"type\":\"string\",\"description\":\"AAAA-MM-JJ si connue\"},\"source\":{\"type\":\"string\"}}}},\"score\":{\"type\":\"number\",\"description\":\"De 0 à 100 : à quel point un signal récent rend notre offre pertinente maintenant\"},\"raison\":{\"type\":\"string\",\"description\":\"Pourquoi ce score, en une phrase\"},\"angle_approche\":{\"type\":\"string\",\"description\":\"Première phrase d'un message de prise de contact qui s'appuie sur le signal\"},\"interlocuteur_cible\":{\"type\":\"string\",\"description\":\"Fonction à contacter en priorité\"}},\"required\":[\"signaux\",\"score\",\"raison\"]}",
+        "options": {
+          "systemPromptTemplate": "Tu qualifies des signaux d'achat B2B. N'utilise que les faits fournis, n'en invente aucun. Un score élevé exige un signal récent et daté qui rend l'offre pertinente maintenant ; sans signal, le score reste sous 20. Réponds en français, sans tiret cadratin."
+        }
+      }
+    },
+    {
+      "id": "ac56b0ae-b626-438b-9d41-d69064670078",
+      "name": "Claude",
+      "type": "@n8n/n8n-nodes-langchain.lmChatAnthropic",
+      "typeVersion": 1.6,
+      "position": [
+        1200,
+        336
+      ],
+      "parameters": {
+        "model": {
+          "__rl": true,
+          "mode": "list",
+          "value": "claude-sonnet-5",
+          "cachedResultName": "Claude Sonnet 5"
+        },
+        "options": {}
+      }
+    },
+    {
+      "id": "708b5cb0-7156-4503-8595-6d496ef01403",
+      "name": "Consolider",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1472,
+        112
+      ],
+      "parameters": {
+        "mode": "runOnceForEachItem",
+        "language": "javaScript",
+        "jsCode": "const c = $('Préparer l\\'analyse').item.json; const o = $json.output || {};\nconst signaux = Array.isArray(o.signaux) ? o.signaux : [];\nreturn { json: { detecte_le: $now.toISO(), entreprise: c.entreprise, domaine: c.domaine, score: Math.max(0, Math.min(100, Number(o.score) || 0)), signaux: signaux.map(s => (s.date ? s.date + ' : ' : '') + s.resume).join(' | '), types: [...new Set(signaux.map(s => s.type))].join(', '), raison: o.raison || '', angle_approche: o.angle_approche || '', interlocuteur_cible: o.interlocuteur_cible || '', sources: c.sources } };"
+      }
+    },
+    {
+      "id": "773444a9-5c3c-4912-8249-8d17c7965310",
+      "name": "Garder les signaux",
+      "type": "n8n-nodes-base.dataTable",
+      "typeVersion": 1.1,
+      "position": [
+        1696,
+        112
+      ],
+      "parameters": {
+        "resource": "row",
+        "operation": "insert",
+        "dataTableId": {
+          "__rl": true,
+          "mode": "list",
+          "value": "",
+          "cachedResultName": "Signaux d'achat"
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "detecte_le": "={{ $json.detecte_le }}",
+            "entreprise": "={{ $json.entreprise }}",
+            "score": "={{ $json.score }}",
+            "types": "={{ $json.types }}",
+            "signaux": "={{ $json.signaux }}",
+            "raison": "={{ $json.raison }}",
+            "angle_approche": "={{ $json.angle_approche }}",
+            "sources": "={{ $json.sources }}"
+          },
+          "schema": [
+            {
+              "id": "detecte_le",
+              "displayName": "detecte_le",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "dateTime",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "entreprise",
+              "displayName": "entreprise",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "score",
+              "displayName": "score",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "number",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "types",
+              "displayName": "types",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "signaux",
+              "displayName": "signaux",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "raison",
+              "displayName": "raison",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "angle_approche",
+              "displayName": "angle_approche",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "sources",
+              "displayName": "sources",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            }
+          ]
+        }
+      }
+    },
+    {
+      "id": "00afde1e-43cb-47fb-b5a8-5b5a91624d92",
+      "name": "Compte chaud ?",
+      "type": "n8n-nodes-base.filter",
+      "typeVersion": 2.2,
+      "position": [
+        1920,
+        112
+      ],
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "loose"
+          },
+          "conditions": [
+            {
+              "leftValue": "={{ $('Consolider').item.json.score }}",
+              "operator": {
+                "type": "number",
+                "operation": "gte"
+              },
+              "rightValue": "={{ $('Configuration').first().json.score_minimum }}"
+            }
+          ],
+          "combinator": "and"
+        }
+      }
+    },
+    {
+      "id": "67feb0a4-e19c-42d6-95ba-c6b58630ff2f",
+      "name": "Créer la tâche HubSpot",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        2144,
+        112
+      ],
+      "parameters": {
+        "method": "POST",
+        "url": "https://api.hubapi.com/crm/v3/objects/tasks",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "hubspotAppToken",
+        "sendBody": true,
+        "contentType": "json",
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({ properties: { hs_timestamp: $now.toISO(), hs_task_subject: \"Signal d'achat : \" + $('Consolider').item.json.entreprise + \" (\" + $('Consolider').item.json.score + \"/100)\", hs_task_body: $('Consolider').item.json.raison + \"\\n\\nSignaux : \" + $('Consolider').item.json.signaux + \"\\n\\nAngle : \" + $('Consolider').item.json.angle_approche + \"\\nÀ contacter : \" + $('Consolider').item.json.interlocuteur_cible, hs_task_priority: \"HIGH\", hs_task_status: \"NOT_STARTED\", hs_task_type: \"TODO\" } }) }}",
+        "options": {
+          "timeout": 20000
+        }
+      },
+      "onError": "continueRegularOutput"
+    },
+    {
+      "id": "9eac7eae-a844-458b-9f2d-9df4a005993f",
+      "name": "Résumé de la semaine",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        2368,
+        112
+      ],
+      "parameters": {
+        "mode": "runOnceForAllItems",
+        "language": "javaScript",
+        "jsCode": "const esc = s => String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');\nconst chauds = $('Compte chaud ?').all().map(i => i.json).sort((a, b) => b.score - a.score);\nconst lignes = ['<b>Signaux d\\'achat de la semaine</b>', chauds.length + ' compte' + (chauds.length > 1 ? 's' : '') + ' à contacter, tâches créées dans HubSpot.', ''];\nfor (const c of chauds) lignes.push('<b>' + esc(c.entreprise) + '</b> : ' + c.score + '/100', esc(c.raison), 'Angle : ' + esc(c.angle_approche), '');\nreturn [{ json: { message: lignes.join('\\n') } }];"
+      }
+    },
+    {
+      "id": "736b3fde-40bf-4015-9c8d-8220f2af8a3c",
+      "name": "Prévenir sur Telegram",
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1.2,
+      "position": [
+        2592,
+        112
+      ],
+      "parameters": {
+        "resource": "message",
+        "operation": "sendMessage",
+        "chatId": "={{ $('Configuration').first().json.telegram_chat_id }}",
+        "text": "={{ $json.message }}",
+        "additionalFields": {
+          "appendAttribution": false,
+          "parse_mode": "HTML",
+          "disable_web_page_preview": true
+        }
+      }
+    },
+    {
+      "id": "acc6ec67-c23a-49e9-b065-2150abc3f1e3",
+      "name": "Analyser maintenant",
+      "type": "n8n-nodes-base.manualTrigger",
+      "typeVersion": 1,
+      "position": [
+        0,
+        208
+      ],
+      "parameters": {}
+    }
+  ],
+  "connections": {
+    "Chaque lundi à 7 h": {
+      "main": [
+        [
+          {
+            "node": "Configuration",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Configuration": {
+      "main": [
+        [
+          {
+            "node": "Une ligne par compte",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Une ligne par compte": {
+      "main": [
+        [
+          {
+            "node": "Chercher les signaux (Perplexity)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Chercher les signaux (Perplexity)": {
+      "main": [
+        [
+          {
+            "node": "Préparer l'analyse",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Préparer l'analyse": {
+      "main": [
+        [
+          {
+            "node": "Qualifier les signaux",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Qualifier les signaux": {
+      "main": [
+        [
+          {
+            "node": "Consolider",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Claude": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "Qualifier les signaux",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Consolider": {
+      "main": [
+        [
+          {
+            "node": "Garder les signaux",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Garder les signaux": {
+      "main": [
+        [
+          {
+            "node": "Compte chaud ?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Compte chaud ?": {
+      "main": [
+        [
+          {
+            "node": "Créer la tâche HubSpot",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Créer la tâche HubSpot": {
+      "main": [
+        [
+          {
+            "node": "Résumé de la semaine",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Résumé de la semaine": {
+      "main": [
+        [
+          {
+            "node": "Prévenir sur Telegram",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Analyser maintenant": {
+      "main": [
+        [
+          {
+            "node": "Configuration",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1"
+  }
+}

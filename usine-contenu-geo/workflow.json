@@ -1,0 +1,970 @@
+{
+  "name": "Usine de contenu GEO",
+  "nodes": [
+    {
+      "id": "b585702f-7446-4da1-8975-100072767405",
+      "name": "Présentation",
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        -60,
+        -551
+      ],
+      "parameters": {
+        "content": "## Usine de contenu GEO\nPar **Elie LISSODA**, automatisation marketing · [elie.koudujob.com](https://elie.koudujob.com)\n\nChaque IA fait ce qu'elle fait le mieux : Perplexity trouve les faits, ChatGPT les vraies questions des gens, Claude écrit, Gemini vérifie. Vous recevez un article sourcé, prêt à relire.\n\nPour le lancer : connectez Perplexity, OpenAI, Claude, Gemini, WordPress et Notion, créez la table « Contenus GEO », puis ouvrez le formulaire.\n\nUne question ? Je suis disponible sur [elie.koudujob.com](https://elie.koudujob.com) 😉",
+        "color": 2,
+        "width": 600,
+        "height": 361
+      }
+    },
+    {
+      "id": "601e508d-748e-4dbd-ab6f-3c9ea6b1698c",
+      "name": "Étape 1",
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        -60,
+        -150
+      ],
+      "parameters": {
+        "content": "### 1. Le brief\nLa question du client, la marque, le ton et la note minimale à atteindre.",
+        "color": 7,
+        "width": 460,
+        "height": 330
+      }
+    },
+    {
+      "id": "11c5737a-d41d-49e2-94b6-e3f889edb441",
+      "name": "Étape 2",
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        420,
+        -150
+      ],
+      "parameters": {
+        "content": "### 2. Chercher la matière\nPerplexity rapporte les faits récents avec leurs sources, ChatGPT les questions que les gens posent vraiment.",
+        "color": 5,
+        "width": 820,
+        "height": 330
+      }
+    },
+    {
+      "id": "cbfc3a95-abb5-447f-98fb-31831a43a8e4",
+      "name": "Étape 3",
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        1260,
+        -125
+      ],
+      "parameters": {
+        "content": "### 3. Écrire\nClaude fait d'abord un plan argumenté, puis écrit l'article avec sa FAQ et son balisage JSON-LD.",
+        "color": 6,
+        "width": 944,
+        "height": 305
+      }
+    },
+    {
+      "id": "d910b114-30d6-4d47-8c4e-d3a6acf4a755",
+      "name": "Étape 4",
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        2220,
+        -125
+      ],
+      "parameters": {
+        "content": "### 4. Relire\nL'article est noté sur 100. En dessous de la note minimale, Claude le reprend. Gemini vérifie ensuite chaque chiffre avec Google.",
+        "color": 1,
+        "width": 1424,
+        "height": 565
+      }
+    },
+    {
+      "id": "addcad56-ed68-4801-85c3-d8d635d7ba43",
+      "name": "Étape 5",
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        3660,
+        -125
+      ],
+      "parameters": {
+        "content": "### 5. Ranger les brouillons\nL'article part en brouillon dans WordPress et dans Notion. Rien n'est publié sans relecture.",
+        "color": 4,
+        "width": 1420,
+        "height": 305
+      }
+    },
+    {
+      "parameters": {
+        "authentication": "n8nUserAuth",
+        "formTitle": "Usine de contenu GEO",
+        "formDescription": "Une question de client, et la chaîne produit un contenu conçu pour être cité par Google et par les IA.",
+        "formFields": {
+          "values": [
+            {
+              "fieldLabel": "Question du client",
+              "fieldName": "question",
+              "placeholder": "Quel outil choisir pour automatiser son marketing ?",
+              "requiredField": true
+            },
+            {
+              "fieldLabel": "Marque",
+              "fieldName": "marque",
+              "requiredField": true
+            },
+            {
+              "fieldLabel": "Site de la marque",
+              "fieldName": "site",
+              "placeholder": "exemple.fr"
+            },
+            {
+              "fieldLabel": "Mots clés à couvrir",
+              "fieldName": "motscles",
+              "placeholder": "automatisation, n8n, PME"
+            },
+            {
+              "fieldLabel": "Ton",
+              "fieldType": "dropdown",
+              "fieldName": "ton",
+              "fieldOptions": {
+                "values": [
+                  {
+                    "option": "Expert"
+                  },
+                  {
+                    "option": "Pedagogique"
+                  },
+                  {
+                    "option": "Direct"
+                  }
+                ]
+              },
+              "requiredField": true
+            },
+            {
+              "fieldLabel": "Note minimale à atteindre",
+              "fieldType": "number",
+              "fieldName": "cible",
+              "placeholder": "85"
+            }
+          ]
+        },
+        "responseMode": "lastNode",
+        "options": {
+          "appendAttribution": false,
+          "buttonLabel": "Lancer la production"
+        }
+      },
+      "id": "0444e0c5-8c5f-445f-99c7-fcc8163cd9d5",
+      "name": "Brief de contenu",
+      "type": "n8n-nodes-base.formTrigger",
+      "typeVersion": 2.6,
+      "position": [
+        0,
+        0
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "const s = $input.first().json;\nconst question = String(s.question || s['Question du client'] || '').trim();\nconst marque = String(s.marque || s['Marque'] || '').trim();\nconst site = String(s.site || s['Site de la marque'] || '').trim();\nconst motscles = String(s.motscles || s['Mots clés à couvrir'] || '').trim();\nconst ton = String(s.ton || s['Ton'] || 'Expert').trim();\nconst cible = Number(s.cible || s['Note minimale à atteindre'] || 85);\n\nreturn [{ json: {\n  run_id: 'contenu-' + $now.toFormat('yyyyLLdd-HHmmss'),\n  question: question,\n  marque: marque,\n  site: site,\n  motscles: motscles,\n  ton: ton,\n  cible: isNaN(cible) ? 85 : cible,\n  prompt_faits: 'Recherche les faits recents et verifiables qui permettent de repondre a cette question : \"' + question + '\". Contexte marche francais, annee en cours. Donne 8 faits maximum, chacun avec un chiffre et sa source (nom du site et adresse). Reponds en francais, sans tiret cadratin.',\n  prompt_questions: 'Liste les 6 questions que se posent reellement les decideurs de PME autour de ce sujet : \"' + question + '\". Une question par ligne, sans numerotation, sans commentaire, en francais.'\n} }];"
+      },
+      "id": "1e700b8f-d71d-439a-9068-5a04ea2228bd",
+      "name": "Cadrer le brief",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        240,
+        0
+      ]
+    },
+    {
+      "parameters": {
+        "modelId": {
+          "__rl": true,
+          "mode": "id",
+          "value": "gpt-5-mini"
+        },
+        "responses": {
+          "values": [
+            {
+              "content": "={{ $('Cadrer le brief').first().json.prompt_questions }}"
+            }
+          ]
+        },
+        "simplify": false,
+        "builtInTools": {
+          "webSearch": {
+            "searchContextSize": "medium",
+            "country": "FR"
+          }
+        },
+        "options": {
+          "maxTokens": 2000
+        }
+      },
+      "id": "55c41f17-8f08-49d0-84a1-d3857a6094f0",
+      "name": "Repérer les questions liées",
+      "type": "@n8n/n8n-nodes-langchain.openAi",
+      "typeVersion": 2.3,
+      "position": [
+        720,
+        0
+      ],
+      "retryOnFail": true,
+      "onError": "continueRegularOutput"
+    },
+    {
+      "parameters": {
+        "jsCode": "const cfg = $('Cadrer le brief').first().json;\n\nfunction texteDe(json) {\n  if (!json) return '';\n  if (typeof json.text === 'string') return json.text;\n  if (typeof json.output === 'string') return json.output;\n  if (Array.isArray(json.content)) {\n    return json.content.filter(c => c && (c.type === 'text' || c.text)).map(c => c.text || '').join('\\n');\n  }\n  if (Array.isArray(json.choices) && json.choices[0] && json.choices[0].message) return String(json.choices[0].message.content || '');\n  if (Array.isArray(json.output)) {\n    const bouts = [];\n    for (const o of json.output) {\n      if (o && Array.isArray(o.content)) for (const c of o.content) if (c && typeof c.text === 'string') bouts.push(c.text);\n    }\n    return bouts.join('\\n');\n  }\n  return '';\n}\n\nconst faitsBrut = texteDe($('Collecter les faits').first().json);\nconst questionsBrut = texteDe($('Repérer les questions liées').first().json);\n\n// Perplexity cite souvent ses sources sans prefixe https, entre accents graves.\nconst avecPrefixe = (faitsBrut.match(/https?:\\\\/\\\\/[^\\\\s)\\\\]\"`]+/g) || []);\nconst sansPrefixe = (faitsBrut.match(/(?:^|[\\\\s`(])((?:[a-z0-9-]+\\\\.)+[a-z]{2,}\\\\/[^\\\\s)\\\\]\"`]+)/gi) || []).map(m => m.replace(/^[\\\\s`(]+/, ''));\nconst sources = Array.from(new Set(\n  avecPrefixe.concat(sansPrefixe.map(u => 'https://' + u.replace(/^https?:\\\\/\\\\//, '')))\n    .map(u => u.replace(/[.,;`]+$/, ''))\n)).slice(0, 12);\n\nconst questions = questionsBrut.split('\\n').map(l => l.replace(/^[-*\\\\d.\\\\s]+/, '').trim()).filter(l => l.length > 8).slice(0, 6);\n\nconst promptBrief = 'Tu es strategiste SEO et GEO. A partir de la matiere ci-dessous, produis un brief de contenu en JSON strict. Ta reponse doit commencer par une accolade ouvrante et finir par une accolade fermante, sans balise de code, sans phrase d introduction, sans tiret cadratin.\\n\\nSchema attendu :\\n{\"titre\":\"titre de 30 a 65 caracteres\",\"meta\":\"meta description de 70 a 160 caracteres\",\"angle\":\"une phrase\",\"plan\":[{\"h2\":\"sous titre\",\"points\":[\"idee\",\"idee\"]}],\"faq\":[{\"question\":\"...\",\"reponse\":\"reponse de 40 mots maximum\"}],\"entites\":[\"terme\",\"terme\"]}\\n\\nRegles : 5 a 6 sous titres h2 dont au moins un formule comme une question, exactement 3 entrees de FAQ, 8 entites a couvrir.\\n\\nQuestion du client : ' + cfg.question + '\\nMarque : ' + cfg.marque + '\\nMots cles : ' + (cfg.motscles || 'aucun impose') + '\\nTon : ' + cfg.ton + '\\n\\nQuestions reelles des decideurs :\\n' + questions.join('\\n') + '\\n\\nFaits et chiffres collectes :\\n' + faitsBrut.slice(0, 6000);\n\nreturn [{ json: Object.assign({}, cfg, {\n  faits: faitsBrut.slice(0, 6000),\n  questions: questions.join('\\n'),\n  sources: sources.join('\\n'),\n  prompt_brief: promptBrief\n}) }];"
+      },
+      "id": "f467bd1c-33e6-4e36-887e-17ceaae517ff",
+      "name": "Rassembler la matière",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1080,
+        0
+      ]
+    },
+    {
+      "parameters": {
+        "modelId": {
+          "__rl": true,
+          "mode": "id",
+          "value": "claude-sonnet-5"
+        },
+        "messages": {
+          "values": [
+            {
+              "content": "={{ $json.prompt_brief }}"
+            }
+          ]
+        },
+        "simplify": false,
+        "options": {
+          "maxTokens": 6000
+        }
+      },
+      "id": "44bd36bd-ac5b-4ee6-bd0d-7b3e635bd3c3",
+      "name": "Construire le brief sémantique",
+      "type": "@n8n/n8n-nodes-langchain.anthropic",
+      "typeVersion": 1,
+      "position": [
+        1320,
+        0
+      ],
+      "retryOnFail": true,
+      "onError": "continueRegularOutput"
+    },
+    {
+      "parameters": {
+        "jsCode": "const matiere = $('Rassembler la matière').first().json;\nconst rep = $input.first().json;\nlet texte = '';\nif (Array.isArray(rep.content)) texte = rep.content.filter(c => c && c.type === 'text').map(c => c.text).join('\\n');\nelse if (typeof rep.text === 'string') texte = rep.text;\n\nlet brief = null;\nconst debut = texte.indexOf('{');\nconst fin = texte.lastIndexOf('}');\nif (debut !== -1 && fin > debut) {\n  try { brief = JSON.parse(texte.slice(debut, fin + 1)); } catch (e) { brief = null; }\n}\nif (!brief) {\n  brief = { titre: matiere.question, meta: '', angle: '', plan: [], faq: [], entites: [] };\n}\n\nconst plan = (brief.plan || []).map(p => '- ' + p.h2 + ' : ' + ((p.points || []).join(', '))).join('\\n');\nconst faq = (brief.faq || []).map(f => '- ' + f.question + ' => ' + f.reponse).join('\\n');\n\nconst promptArticle = 'Tu es redacteur SEO et GEO. Redige un article complet en HTML, pret a publier, a partir du brief ci-dessous.\\n\\nRegles strictes :\\n1. Un seul h1, puis les h2 du plan, avec des h3 quand c est utile.\\n2. Entre 900 et 1300 mots.\\n3. Au moins deux listes a puces et un tableau comparatif.\\n4. Au moins 6 donnees chiffrees, chacune suivie de sa source sous forme de lien html.\\n5. La marque ' + matiere.marque + ' est citee au moins 3 fois, sans exageration commerciale.\\n6. Une section FAQ en h2 avec les 3 questions du brief et leurs reponses.\\n7. Aucun tiret cadratin, aucun markdown, uniquement du HTML.\\n8. Ton ' + matiere.ton + ', en francais.\\n\\nTitre : ' + (brief.titre || '') + '\\nAngle : ' + (brief.angle || '') + '\\nPlan :\\n' + plan + '\\nFAQ :\\n' + faq + '\\nEntites a couvrir : ' + ((brief.entites || []).join(', ')) + '\\n\\nFaits et chiffres disponibles :\\n' + matiere.faits + '\\n\\nSources disponibles :\\n' + matiere.sources;\n\nreturn [{ json: Object.assign({}, matiere, {\n  titre: brief.titre || matiere.question,\n  meta: brief.meta || '',\n  angle: brief.angle || '',\n  plan_json: JSON.stringify(brief.plan || []),\n  faq_json: JSON.stringify(brief.faq || []),\n  entites: (brief.entites || []).join(', '),\n  prompt_article: promptArticle\n}) }];"
+      },
+      "id": "ea2a8f8e-58f7-46d2-b368-b54a075142d1",
+      "name": "Lire le brief",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1680,
+        0
+      ]
+    },
+    {
+      "parameters": {
+        "modelId": {
+          "__rl": true,
+          "mode": "id",
+          "value": "claude-sonnet-5"
+        },
+        "messages": {
+          "values": [
+            {
+              "content": "={{ $json.prompt_article }}"
+            }
+          ]
+        },
+        "simplify": false,
+        "options": {
+          "maxTokens": 8000
+        }
+      },
+      "id": "32ad66ed-4058-408c-bac2-05fc905ad1a9",
+      "name": "Rédiger l’article",
+      "type": "@n8n/n8n-nodes-langchain.anthropic",
+      "typeVersion": 1,
+      "position": [
+        1920,
+        0
+      ],
+      "retryOnFail": true,
+      "onError": "continueRegularOutput"
+    },
+    {
+      "parameters": {
+        "jsCode": "const b = $('Lire le brief').first().json;\nconst rep = $input.first().json;\nlet html = '';\nif (Array.isArray(rep.content)) html = rep.content.filter(c => c && c.type === 'text').map(c => c.text).join('\\n');\nelse if (typeof rep.text === 'string') html = rep.text;\nhtml = html.replace(/^[\\\\s\\\\S]*?(?=<)/, '').replace(/```html?/gi, '').replace(/```/g, '').trim();\n\nfunction net(t) { return String(t || '').replace(/<[^>]+>/g, ' ').replace(/\\\\s+/g, ' ').trim(); }\n\n// Rattrapage : si le brief est incomplet, on recupere titre, meta et FAQ dans l article lui meme.\nlet titre = String(b.titre || '').trim();\nconst titreHtml = (html.match(/<h1[^>]*>([\\\\s\\\\S]*?)<\\\\/h1>/i) || [null, ''])[1];\nif ((!titre || titre.length < 20 || titre.length > 80) && net(titreHtml)) titre = net(titreHtml);\n\nlet meta = String(b.meta || '').trim();\nif (!meta) {\n  const balises = html.match(/<meta[^>]+>/gi) || [];\n  for (const m of balises) {\n    const nom = (m.match(/\\\\sname=[\"']([^\"']+)[\"']/i) || [null, ''])[1].toLowerCase();\n    if (nom === 'description') meta = (m.match(/\\\\scontent=[\"']([^\"']*)[\"']/i) || [null, ''])[1].trim();\n  }\n}\n\nlet faq = [];\ntry { faq = JSON.parse(b.faq_json || '[]'); } catch (e) { faq = []; }\nif (!faq.length) {\n  const morceau = html.split(/<h2[^>]*>\\\\s*FAQ/i)[1] || '';\n  const questions = morceau.match(/<h3[^>]*>([\\\\s\\\\S]*?)<\\\\/h3>\\\\s*<p[^>]*>([\\\\s\\\\S]*?)<\\\\/p>/gi) || [];\n  for (const bloc of questions) {\n    const q = net((bloc.match(/<h3[^>]*>([\\\\s\\\\S]*?)<\\\\/h3>/i) || [null, ''])[1]);\n    const r = net((bloc.match(/<p[^>]*>([\\\\s\\\\S]*?)<\\\\/p>/i) || [null, ''])[1]);\n    if (q && r) faq.push({ question: q, reponse: r });\n  }\n}\n\nconst jsonld = JSON.stringify({\n  '@context': 'https://schema.org',\n  '@graph': [\n    { '@type': 'Article', headline: titre, description: meta, datePublished: new Date().toISOString(), author: { '@type': 'Organization', name: b.marque }, publisher: { '@type': 'Organization', name: b.marque } },\n    { '@type': 'FAQPage', mainEntity: faq.map(f => ({ '@type': 'Question', name: f.question, acceptedAnswer: { '@type': 'Answer', text: f.reponse } })) }\n  ]\n});\n\nconst propre = html.replace(/<script[\\\\s\\\\S]*?<\\\\/script>/gi, ' ');\nconst texte = propre.replace(/<[^>]+>/g, ' ').replace(/\\\\s+/g, ' ').trim();\nconst mots = texte ? texte.split(' ').length : 0;\nconst h1 = (html.match(/<h1[^>]*>/gi) || []).length;\nconst h2s = (html.match(/<h2[^>]*>([\\\\s\\\\S]*?)<\\\\/h2>/gi) || []).map(h => net(h));\nconst h3 = (html.match(/<h3[^>]*>/gi) || []).length;\nconst listes = (html.match(/<(ul|ol)[^>]*>/gi) || []).length + (html.match(/<table[^>]*>/gi) || []).length;\nconst questionsH2 = h2s.filter(t => t.includes('?')).length;\nconst chiffres = (texte.match(/\\\\d+([.,]\\\\d+)?\\\\s?(%|€|\\\\$|fois|ans|jours|heures|minutes|points)/gi) || []).length;\nconst liens = (html.match(/<a[^>]+href=[\"']https?:\\\\/\\\\/[^\"']+[\"']/gi) || []).length;\nconst mentions = b.marque ? (texte.toLowerCase().split(String(b.marque).toLowerCase()).length - 1) : 0;\n\nlet n = 0; const dits = [];\nif (titre.length >= 30 && titre.length <= 65) n += 10; else dits.push('Titre de ' + titre.length + ' caracteres, viser 30 a 65.');\nif (meta.length >= 70 && meta.length <= 160) n += 10; else dits.push('Meta description de ' + meta.length + ' caracteres, viser 70 a 160.');\nif (h1 === 1) n += 5; else dits.push(h1 + ' balises h1, il en faut exactement une.');\nif (h2s.length >= 3) n += 10; else dits.push('Seulement ' + h2s.length + ' sous titres h2.');\nif (h3 >= 2) n += 5; else dits.push('Ajouter des h3 pour detailler les sections.');\nif (listes >= 2) n += 10; else dits.push('Ajouter des listes et un tableau comparatif.');\nif (questionsH2 >= 1) n += 5; else dits.push('Aucun sous titre formule comme une question.');\nif (mots >= 800) n += 10; else dits.push('Contenu de ' + mots + ' mots, viser 900 a 1300.');\nif (faq.length >= 3) n += 10; else dits.push('La FAQ compte ' + faq.length + ' questions au lieu de 3.');\nif (chiffres >= 5) n += 10; else dits.push('Seulement ' + chiffres + ' donnees chiffrees.');\nif (mentions >= 3) n += 5; else dits.push('La marque n apparait que ' + mentions + ' fois.');\nif (liens >= 3) n += 10; else dits.push('Seulement ' + liens + ' liens de sources.');\n\nconst promptCorrection = 'Voici un article HTML et les constats d un controle qualite automatique. Corrige uniquement ce qui est signale, garde le reste intact, renvoie le HTML complet sans commentaire, sans markdown et sans tiret cadratin.\\n\\nConstats : ' + dits.join(' ') + '\\n\\nArticle :\\n' + html;\n\nreturn [{ json: Object.assign({}, b, {\n  titre: titre,\n  meta: meta,\n  faq_json: JSON.stringify(faq),\n  article_html: html,\n  jsonld: jsonld,\n  score: n,\n  constats: dits.join(' '),\n  mots: mots,\n  corrige: false,\n  prompt_correction: promptCorrection\n}) }];"
+      },
+      "id": "65e92aaf-3efe-49d2-8318-def42d564bc7",
+      "name": "Noter le contenu",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        2280,
+        0
+      ]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "loose",
+            "version": 1
+          },
+          "conditions": [
+            {
+              "leftValue": "={{ $json.score }}",
+              "operator": {
+                "type": "number",
+                "operation": "gte"
+              },
+              "rightValue": "={{ $json.cible }}"
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "bbb272a9-8aed-44ce-8455-db4793dfd6cf",
+      "name": "Note atteinte ?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        2520,
+        0
+      ]
+    },
+    {
+      "parameters": {
+        "modelId": {
+          "__rl": true,
+          "mode": "id",
+          "value": "models/gemini-2.5-flash"
+        },
+        "messages": {
+          "values": [
+            {
+              "content": "={{ 'Verifie les affirmations chiffrees de cet article avec la recherche Google. Pour chaque chiffre douteux ou non verifiable, ecris une ligne : chiffre, verdict (confirme, doute, introuvable), source. Maximum 8 lignes, en francais, sans tiret cadratin.\\n\\n' + $json.article_html.replace(/<[^>]+>/g, ' ').slice(0, 6000) }}"
+            }
+          ]
+        },
+        "simplify": false,
+        "builtInTools": {
+          "googleSearch": true
+        },
+        "options": {
+          "maxOutputTokens": 4000
+        }
+      },
+      "id": "6dc13a44-a760-48ab-8f39-f69ccf338ff1",
+      "name": "Vérifier les faits avec Gemini",
+      "type": "@n8n/n8n-nodes-langchain.googleGemini",
+      "typeVersion": 1.2,
+      "position": [
+        3360,
+        0
+      ],
+      "retryOnFail": true,
+      "onError": "continueRegularOutput"
+    },
+    {
+      "parameters": {
+        "modelId": {
+          "__rl": true,
+          "mode": "id",
+          "value": "claude-sonnet-5"
+        },
+        "messages": {
+          "values": [
+            {
+              "content": "={{ $json.prompt_correction }}"
+            }
+          ]
+        },
+        "simplify": false,
+        "options": {
+          "maxTokens": 8000
+        }
+      },
+      "id": "00ecc6fa-556a-438f-bc5f-bbc32e7a07cc",
+      "name": "Corriger l’article",
+      "type": "@n8n/n8n-nodes-langchain.anthropic",
+      "typeVersion": 1,
+      "position": [
+        2760,
+        260
+      ],
+      "retryOnFail": true,
+      "onError": "continueRegularOutput"
+    },
+    {
+      "parameters": {
+        "jsCode": "const avant = $('Noter le contenu').first().json;\nconst rep = $input.first().json;\nlet html = '';\nif (Array.isArray(rep.content)) html = rep.content.filter(c => c && c.type === 'text').map(c => c.text).join('\\n');\nelse if (typeof rep.text === 'string') html = rep.text;\nhtml = html.replace(/^[\\s\\S]*?(?=<)/, '').replace(/```html?/gi, '').replace(/```/g, '').trim();\nif (html.length < 400) return [{ json: avant }];\n\nconst faq = JSON.parse(avant.faq_json || '[]');\nconst propre = html.replace(/<script[\\s\\S]*?<\\/script>/gi, ' ');\nconst texte = propre.replace(/<[^>]+>/g, ' ').replace(/\\s+/g, ' ').trim();\nconst mots = texte ? texte.split(' ').length : 0;\nconst h1 = (html.match(/<h1[^>]*>/gi) || []).length;\nconst h2s = (html.match(/<h2[^>]*>([\\s\\S]*?)<\\/h2>/gi) || []).map(h => h.replace(/<[^>]+>/g, ' ').trim());\nconst h3 = (html.match(/<h3[^>]*>/gi) || []).length;\nconst listes = (html.match(/<(ul|ol)[^>]*>/gi) || []).length + (html.match(/<table[^>]*>/gi) || []).length;\nconst questions = h2s.filter(t => t.includes('?')).length;\nconst chiffres = (texte.match(/\\d+([.,]\\d+)?\\s?(%|€|\\$|fois|ans|jours|heures|minutes|points)/gi) || []).length;\nconst liens = (html.match(/<a[^>]+href=[\"']https?:\\/\\/[^\"']+[\"']/gi) || []).length;\nconst mentions = avant.marque ? (texte.toLowerCase().split(String(avant.marque).toLowerCase()).length - 1) : 0;\nconst titre = String(avant.titre || '');\nconst meta = String(avant.meta || '');\n\nlet n = 0; const dits = [];\nif (titre.length >= 30 && titre.length <= 65) n += 10; else dits.push('Titre a retravailler.');\nif (meta.length >= 70 && meta.length <= 160) n += 10; else dits.push('Meta description a retravailler.');\nif (h1 === 1) n += 5; else dits.push(h1 + ' balises h1.');\nif (h2s.length >= 3) n += 10; else dits.push('Structure h2 trop pauvre.');\nif (h3 >= 2) n += 5; else dits.push('Manque de h3.');\nif (listes >= 2) n += 10; else dits.push('Manque de listes ou de tableau.');\nif (questions >= 1) n += 5; else dits.push('Aucun h2 en question.');\nif (mots >= 800) n += 10; else dits.push('Contenu de ' + mots + ' mots.');\nif (faq.length >= 3) n += 10; else dits.push('FAQ incomplete.');\nif (chiffres >= 5) n += 10; else dits.push('Manque de donnees chiffrees.');\nif (mentions >= 3) n += 5; else dits.push('Marque peu citee.');\nif (liens >= 3) n += 10; else dits.push('Manque de liens de sources.');\n\nreturn [{ json: Object.assign({}, avant, {\n  article_html: html,\n  score: n,\n  constats: dits.join(' '),\n  mots: mots,\n  corrige: true\n}) }];"
+      },
+      "id": "b8510fcf-e726-44cf-9e82-8fb9ad22c112",
+      "name": "Renoter après correction",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        3120,
+        260
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "const rep = $input.first().json;\nlet verif = '';\nif (Array.isArray(rep.content)) verif = rep.content.filter(c => c && c.type === 'text').map(c => c.text).join('\\n');\nelse if (typeof rep.text === 'string') verif = rep.text;\nelse if (Array.isArray(rep.candidates) && rep.candidates[0] && rep.candidates[0].content && Array.isArray(rep.candidates[0].content.parts)) {\n  verif = rep.candidates[0].content.parts.map(p => p.text || '').join('\\n');\n}\n\nlet contenu;\ntry { contenu = $('Renoter après correction').first().json; }\ncatch (e) { contenu = $('Noter le contenu').first().json; }\n\nreturn [{ json: Object.assign({}, contenu, {\n  verification: (verif || 'verification indisponible').replace(/\\s*[\\u2014\\u2013]\\s*/g, ' : ').trim(),\n  cree_le: new Date().toISOString()\n}) }];"
+      },
+      "id": "85025fed-65c0-4991-8c15-7b24fbdcd2fe",
+      "name": "Consolider",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        3720,
+        0
+      ]
+    },
+    {
+      "parameters": {
+        "dataTableId": {
+          "__rl": true,
+          "mode": "list",
+          "value": "",
+          "cachedResultName": "Contenus GEO"
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "cree_le": "={{ $json.cree_le }}",
+            "question": "={{ $json.question }}",
+            "marque": "={{ $json.marque }}",
+            "titre": "={{ $json.titre }}",
+            "meta": "={{ $json.meta }}",
+            "score": "={{ $json.score }}",
+            "corrige": "={{ $json.corrige }}",
+            "constats": "={{ $json.constats }}",
+            "article_html": "={{ $json.article_html }}",
+            "jsonld": "={{ $json.jsonld }}",
+            "sources": "={{ $json.sources }}",
+            "verification": "={{ $json.verification }}",
+            "mots": "={{ $json.mots }}"
+          },
+          "schema": [
+            {
+              "id": "cree_le",
+              "displayName": "cree_le",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "dateTime",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "question",
+              "displayName": "question",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "marque",
+              "displayName": "marque",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "titre",
+              "displayName": "titre",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "meta",
+              "displayName": "meta",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "score",
+              "displayName": "score",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "number",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "corrige",
+              "displayName": "corrige",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "boolean",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "constats",
+              "displayName": "constats",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "article_html",
+              "displayName": "article_html",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "jsonld",
+              "displayName": "jsonld",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "sources",
+              "displayName": "sources",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "verification",
+              "displayName": "verification",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "mots",
+              "displayName": "mots",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "number",
+              "canBeUsedToMatch": true
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "43b2db77-77f6-48d0-8705-0c08c092ef3d",
+      "name": "Archiver le contenu",
+      "type": "n8n-nodes-base.dataTable",
+      "typeVersion": 1.1,
+      "position": [
+        3960,
+        0
+      ]
+    },
+    {
+      "parameters": {
+        "title": "={{ $('Consolider').first().json.titre }}",
+        "additionalFields": {
+          "content": "={{ $('Consolider').first().json.article_html }}",
+          "status": "draft"
+        }
+      },
+      "id": "a175f55e-8f26-45e2-88e8-e0f63d3e8300",
+      "name": "Publier en brouillon WordPress",
+      "type": "n8n-nodes-base.wordpress",
+      "typeVersion": 1,
+      "position": [
+        4680,
+        0
+      ],
+      "disabled": true
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "titre",
+              "name": "titre",
+              "value": "={{ $('Consolider').first().json.titre }}",
+              "type": "string"
+            },
+            {
+              "id": "note",
+              "name": "note",
+              "value": "={{ $('Consolider').first().json.score }}/100, {{ $('Consolider').first().json.mots }} mots, correction {{ $('Consolider').first().json.corrige ? 'appliquee' : 'inutile' }}",
+              "type": "string"
+            },
+            {
+              "id": "restant",
+              "name": "points_restants",
+              "value": "={{ $('Consolider').first().json.constats || 'aucun' }}",
+              "type": "string"
+            },
+            {
+              "id": "verif",
+              "name": "verification_des_chiffres",
+              "value": "={{ $('Consolider').first().json.verification }}",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "589c446d-7c66-4a42-98af-0c62570d7354",
+      "name": "Réponse",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        4920,
+        0
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "const c = $('Consolider').first().json;\n\nfunction net(t) {\n  return String(t || '')\n    .replace(/<[^>]+>/g, ' ')\n    .replace(/&nbsp;/g, ' ')\n    .replace(/&amp;/g, '&')\n    .replace(/&quot;/g, '\"')\n    .replace(/&#39;/g, \"'\")\n    .replace(/&lt;/g, '<')\n    .replace(/&gt;/g, '>')\n    .replace(/\\s+/g, ' ')\n    .trim();\n}\n\nlet md = String(c.article_html || '')\n  .replace(/<!DOCTYPE[^>]*>/gi, '')\n  .replace(/<\\/?(html|head|body|meta|title)[^>]*>/gi, '')\n  .replace(/<a[^>]+href=[\"']([^\"']+)[\"'][^>]*>([\\s\\S]*?)<\\/a>/gi, function (m, u, t) { return '[' + net(t) + '](' + u + ')'; })\n  .replace(/<h1[^>]*>([\\s\\S]*?)<\\/h1>/gi, function (m, t) { return '\\n# ' + net(t) + '\\n'; })\n  .replace(/<h2[^>]*>([\\s\\S]*?)<\\/h2>/gi, function (m, t) { return '\\n## ' + net(t) + '\\n'; })\n  .replace(/<h3[^>]*>([\\s\\S]*?)<\\/h3>/gi, function (m, t) { return '\\n### ' + net(t) + '\\n'; })\n  .replace(/<caption[^>]*>([\\s\\S]*?)<\\/caption>/gi, function (m, t) { return '\\n' + net(t) + '\\n'; })\n  .replace(/<li[^>]*>([\\s\\S]*?)<\\/li>/gi, function (m, t) { return '- ' + net(t) + '\\n'; })\n  .replace(/<\\/?(ul|ol)[^>]*>/gi, '\\n')\n  .replace(/<tr[^>]*>/gi, '\\n')\n  .replace(/<\\/(th|td)>\\s*<(th|td)[^>]*>/gi, ' | ')\n  .replace(/<\\/?(table|thead|tbody|tr|th|td)[^>]*>/gi, '')\n  .replace(/<p[^>]*>([\\s\\S]*?)<\\/p>/gi, function (m, t) { return '\\n' + net(t) + '\\n'; })\n  .replace(/<br\\s*\\/?>/gi, '\\n')\n  .replace(/<[^>]+>/g, '')\n  .replace(/\\n{3,}/g, '\\n\\n')\n  .trim();\n\nmd = md + '\\n\\n## Donnees structurees a coller dans la page\\n\\n```json\\n' + String(c.jsonld || '') + '\\n```\\n\\n## Verification des chiffres par Gemini\\n\\n' + String(c.verification || '');\n\nreturn [{ json: Object.assign({}, c, { markdown: md }) }];"
+      },
+      "id": "a31971cf-5709-4e11-992a-e4d1622803d8",
+      "name": "Préparer la page Notion",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        4200,
+        0
+      ]
+    },
+    {
+      "parameters": {
+        "resource": "databasePage",
+        "dataSourceId": {
+          "__rl": true,
+          "mode": "id",
+          "value": ""
+        },
+        "title": "={{ $json.titre }}",
+        "propertiesUi": {
+          "propertyValues": [
+            {
+              "key": "Marque|rich_text",
+              "textContent": "={{ $json.marque }}"
+            },
+            {
+              "key": "Question|rich_text",
+              "textContent": "={{ $json.question }}"
+            },
+            {
+              "key": "Meta|rich_text",
+              "textContent": "={{ $json.meta }}"
+            },
+            {
+              "key": "Note|number",
+              "numberValue": "={{ $json.score }}"
+            },
+            {
+              "key": "Mots|number",
+              "numberValue": "={{ $json.mots }}"
+            },
+            {
+              "key": "Corrige|checkbox",
+              "checkboxValue": "={{ $json.corrige }}"
+            },
+            {
+              "key": "Statut|select",
+              "selectValue": "a relire"
+            },
+            {
+              "key": "Points_restants|rich_text",
+              "textContent": "={{ $json.constats || 'aucun' }}"
+            },
+            {
+              "key": "Verification|rich_text",
+              "textContent": "={{ ($json.verification || '').slice(0, 1800) }}"
+            },
+            {
+              "key": "Cree_le|date",
+              "date": "={{ $json.cree_le }}"
+            }
+          ]
+        },
+        "contentType": "markdown",
+        "markdown": "={{ $json.markdown }}",
+        "options": {}
+      },
+      "id": "905e5410-533a-42ea-86b1-1b9cb63b9642",
+      "name": "Créer la page Notion",
+      "type": "n8n-nodes-base.notion",
+      "typeVersion": 3,
+      "position": [
+        4440,
+        0
+      ]
+    },
+    {
+      "parameters": {
+        "input": "={{ $json.prompt_faits }}",
+        "model": {
+          "__rl": true,
+          "mode": "list",
+          "value": ""
+        },
+        "preset": "fast",
+        "options": {
+          "maxOutputTokens": 3000,
+          "tools": "[{\"type\":\"web_search\",\"max_results\":10}]"
+        },
+        "requestOptions": {}
+      },
+      "id": "3570cbe3-b3de-4807-bf48-53f3b803bcc8",
+      "name": "Collecter les faits",
+      "type": "n8n-nodes-base.perplexity",
+      "typeVersion": 3,
+      "position": [
+        480,
+        0
+      ],
+      "retryOnFail": true,
+      "onError": "continueRegularOutput"
+    }
+  ],
+  "connections": {
+    "Brief de contenu": {
+      "main": [
+        [
+          {
+            "node": "Cadrer le brief",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Cadrer le brief": {
+      "main": [
+        [
+          {
+            "node": "Collecter les faits",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Repérer les questions liées": {
+      "main": [
+        [
+          {
+            "node": "Rassembler la matière",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Rassembler la matière": {
+      "main": [
+        [
+          {
+            "node": "Construire le brief sémantique",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Construire le brief sémantique": {
+      "main": [
+        [
+          {
+            "node": "Lire le brief",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Lire le brief": {
+      "main": [
+        [
+          {
+            "node": "Rédiger l’article",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Rédiger l’article": {
+      "main": [
+        [
+          {
+            "node": "Noter le contenu",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Noter le contenu": {
+      "main": [
+        [
+          {
+            "node": "Note atteinte ?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Note atteinte ?": {
+      "main": [
+        [
+          {
+            "node": "Vérifier les faits avec Gemini",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Corriger l’article",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Vérifier les faits avec Gemini": {
+      "main": [
+        [
+          {
+            "node": "Consolider",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Corriger l’article": {
+      "main": [
+        [
+          {
+            "node": "Renoter après correction",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Renoter après correction": {
+      "main": [
+        [
+          {
+            "node": "Vérifier les faits avec Gemini",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Consolider": {
+      "main": [
+        [
+          {
+            "node": "Archiver le contenu",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Publier en brouillon WordPress": {
+      "main": [
+        [
+          {
+            "node": "Réponse",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Archiver le contenu": {
+      "main": [
+        [
+          {
+            "node": "Préparer la page Notion",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Préparer la page Notion": {
+      "main": [
+        [
+          {
+            "node": "Créer la page Notion",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Créer la page Notion": {
+      "main": [
+        [
+          {
+            "node": "Publier en brouillon WordPress",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Collecter les faits": {
+      "main": [
+        [
+          {
+            "node": "Repérer les questions liées",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1"
+  }
+}

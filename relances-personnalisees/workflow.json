@@ -1,0 +1,898 @@
+{
+  "name": "Relances personnalisées par IA : séquence qui s'arrête dès la réponse",
+  "nodes": [
+    {
+      "id": "ecf9ca80-ac06-4377-9745-7f41ece4babf",
+      "name": "Présentation",
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        -60,
+        -597
+      ],
+      "parameters": {
+        "content": "## Relances personnalisées par IA\nPar **Elie LISSODA**, automatisation marketing · [elie.koudujob.com](https://elie.koudujob.com)\n\nTrois messages écrits pour un prospect précis, et une séquence qui s'arrête dès qu'il répond. Personne ne reçoit de relance après avoir répondu.\n\nPour le lancer : connectez Claude, Gmail et Telegram, créez la table « Séquences de relance » et mettez votre signature dans Configuration.\n\nUne question ? Je suis disponible sur [elie.koudujob.com](https://elie.koudujob.com) 😉",
+        "color": 2,
+        "width": 600,
+        "height": 336
+      }
+    },
+    {
+      "id": "96187e00-96e2-402c-81d3-956c71872e75",
+      "name": "Étape 1",
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        -60,
+        -13
+      ],
+      "parameters": {
+        "content": "### 1. Le prospect\nSon nom, son site et ce que vous avez repéré sur lui.",
+        "color": 7,
+        "width": 432,
+        "height": 305
+      }
+    },
+    {
+      "id": "d83553a2-9aba-41a5-9de9-e00c43303fc7",
+      "name": "Étape 2",
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        388,
+        -13
+      ],
+      "parameters": {
+        "content": "### 2. Écrire la séquence\nClaude lit le site et écrit trois messages courts, avec une vraie accroche et aucun lien.",
+        "color": 6,
+        "width": 784,
+        "height": 509
+      }
+    },
+    {
+      "id": "fb17ecd0-9393-4a92-8ba6-3067e5514e27",
+      "name": "Étape 3",
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        1188,
+        -13
+      ],
+      "parameters": {
+        "content": "### 3. Premier envoi\nLe premier message part par Gmail.",
+        "color": 4,
+        "width": 432,
+        "height": 305
+      }
+    },
+    {
+      "id": "c75d7d9f-aad5-47f6-83b6-cbd2a5c458e3",
+      "name": "Étape 4",
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        1636,
+        -13
+      ],
+      "parameters": {
+        "content": "### 4. Relancer si pas de réponse\nAprès 3 jours, puis 5, la conversation est relue. Sans réponse, la relance part dans le même fil.",
+        "color": 1,
+        "width": 1552,
+        "height": 401
+      }
+    },
+    {
+      "id": "fd57ac9b-5f2a-46d3-b97f-f3cf1540a4a1",
+      "name": "Étape 5",
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        3204,
+        -221
+      ],
+      "parameters": {
+        "content": "### 5. Il a répondu\nLa séquence s'arrête et Telegram vous prévient.",
+        "color": 3,
+        "width": 444,
+        "height": 305
+      }
+    },
+    {
+      "id": "548a76c0-0d7b-4eb8-b670-7ba01025429b",
+      "name": "Étape 6",
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        3204,
+        179
+      ],
+      "parameters": {
+        "content": "### 6. Fin de séquence\nUn dernier message court, puis la séquence est close.",
+        "color": 7,
+        "width": 444,
+        "height": 305
+      }
+    },
+    {
+      "id": "4d42dc1e-1c3c-4d7b-bb60-a5e7767cdf96",
+      "name": "Démarrer une séquence",
+      "type": "n8n-nodes-base.formTrigger",
+      "typeVersion": 2.6,
+      "position": [
+        0,
+        112
+      ],
+      "parameters": {
+        "formTitle": "Nouvelle séquence de prospection",
+        "formDescription": "Le prospect reçoit un premier message personnalisé, puis deux relances si besoin. La séquence s'arrête dès sa réponse.",
+        "formFields": {
+          "values": [
+            {
+              "fieldLabel": "Prénom",
+              "fieldName": "prenom",
+              "requiredField": true
+            },
+            {
+              "fieldLabel": "Nom",
+              "fieldName": "nom"
+            },
+            {
+              "fieldLabel": "E-mail",
+              "fieldName": "email",
+              "fieldType": "email",
+              "requiredField": true
+            },
+            {
+              "fieldLabel": "Entreprise",
+              "fieldName": "entreprise",
+              "requiredField": true
+            },
+            {
+              "fieldLabel": "Site web",
+              "fieldName": "site",
+              "placeholder": "https://exemple.fr"
+            },
+            {
+              "fieldLabel": "Contexte",
+              "fieldName": "contexte",
+              "fieldType": "textarea",
+              "placeholder": "Signal observé, besoin repéré, recommandation…"
+            }
+          ]
+        },
+        "responseMode": "onReceived",
+        "options": {
+          "appendAttribution": false,
+          "buttonLabel": "Lancer la séquence",
+          "respondWithOptions": {
+            "values": {
+              "respondWith": "text",
+              "formSubmittedText": "Séquence lancée : le premier message part dans une minute."
+            }
+          }
+        }
+      }
+    },
+    {
+      "id": "51ed8e8d-751a-4048-87bc-1124dc03e3ff",
+      "name": "Configuration",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        224,
+        112
+      ],
+      "parameters": {
+        "mode": "manual",
+        "includeOtherFields": true,
+        "assignments": {
+          "assignments": [
+            {
+              "id": "c-exp",
+              "name": "expediteur",
+              "value": "Prénom Nom, Votre société",
+              "type": "string"
+            },
+            {
+              "id": "c-offre",
+              "name": "offre",
+              "value": "Nous automatisons les tâches répétitives des équipes marketing et commerciales avec n8n et l'IA.",
+              "type": "string"
+            },
+            {
+              "id": "c-d1",
+              "name": "delai_relance_1_jours",
+              "value": 3,
+              "type": "number"
+            },
+            {
+              "id": "c-d2",
+              "name": "delai_relance_2_jours",
+              "value": 5,
+              "type": "number"
+            },
+            {
+              "id": "c-tg",
+              "name": "telegram_chat_id",
+              "value": "",
+              "type": "string"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "id": "d9d56dd9-d806-4650-88ad-abfc7f38616a",
+      "name": "Lire le site",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        448,
+        112
+      ],
+      "parameters": {
+        "url": "={{ $json.site || \"https://example.com\" }}",
+        "options": {
+          "response": {
+            "response": {
+              "neverError": true,
+              "responseFormat": "text"
+            }
+          },
+          "timeout": 15000
+        }
+      },
+      "onError": "continueRegularOutput"
+    },
+    {
+      "id": "bc0882a5-82c7-4475-803b-9fdeebb7e82c",
+      "name": "Préparer le contexte",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        672,
+        112
+      ],
+      "parameters": {
+        "mode": "runOnceForEachItem",
+        "language": "javaScript",
+        "jsCode": "const p = $('Configuration').item.json;\nconst html = p.site ? String($json.data || '') : '';\nconst texte = html.replace(/<script[\\s\\S]*?<\\/script>/gi, ' ').replace(/<style[\\s\\S]*?<\\/style>/gi, ' ').replace(/<[^>]+>/g, ' ').replace(/&nbsp;/g, ' ').replace(/\\s+/g, ' ').trim().slice(0, 3000);\nreturn { json: { ...p, consigne: 'Prospect : ' + p.prenom + ' ' + (p.nom || '') + ', ' + p.entreprise + '\\nContexte : ' + (p.contexte || 'aucun') + '\\nNotre offre : ' + p.offre + '\\nSignature : ' + p.expediteur + '\\n\\nExtrait du site :\\n' + (texte || 'site non lu') } };"
+      }
+    },
+    {
+      "id": "19df4e14-7313-475f-8f76-42d3a412f64b",
+      "name": "Écrire la séquence",
+      "type": "@n8n/n8n-nodes-langchain.informationExtractor",
+      "typeVersion": 1.2,
+      "position": [
+        896,
+        112
+      ],
+      "parameters": {
+        "text": "={{ $json.consigne }}",
+        "schemaType": "manual",
+        "inputSchema": "{\"type\":\"object\",\"properties\":{\"objet\":{\"type\":\"string\",\"description\":\"Objet court, sans majuscules partout, sans point d'exclamation\"},\"message_1\":{\"type\":\"string\",\"description\":\"Premier contact\"},\"message_2\":{\"type\":\"string\",\"description\":\"Première relance, qui apporte un élément nouveau\"},\"message_3\":{\"type\":\"string\",\"description\":\"Dernier message, bref, qui laisse la porte ouverte\"}},\"required\":[\"objet\",\"message_1\",\"message_2\",\"message_3\"]}",
+        "options": {
+          "systemPromptTemplate": "Tu écris une séquence de prospection B2B en français, au vouvoiement. Règles : 90 mots au plus par message ; une accroche précise tirée du contexte ou du site, jamais générique ; une seule question par message ; aucun lien, aucune pièce jointe, aucun superlatif ; pas de tiret cadratin. Chaque message commence par « Bonjour » suivi du prénom et se termine par la signature fournie. N'invente aucun fait sur l'entreprise."
+        }
+      }
+    },
+    {
+      "id": "2cd45504-fb5f-4bd5-8079-b2eef1e0db4e",
+      "name": "Claude",
+      "type": "@n8n/n8n-nodes-langchain.lmChatAnthropic",
+      "typeVersion": 1.6,
+      "position": [
+        976,
+        336
+      ],
+      "parameters": {
+        "model": {
+          "__rl": true,
+          "mode": "list",
+          "value": "claude-sonnet-5",
+          "cachedResultName": "Claude Sonnet 5"
+        },
+        "options": {}
+      }
+    },
+    {
+      "id": "f11ea1c1-4abb-4b2f-9fdd-05398f0c176b",
+      "name": "Envoyer le premier message",
+      "type": "n8n-nodes-base.gmail",
+      "typeVersion": 2.2,
+      "position": [
+        1248,
+        112
+      ],
+      "parameters": {
+        "resource": "message",
+        "operation": "send",
+        "sendTo": "={{ $('Configuration').item.json.email }}",
+        "subject": "={{ $json.output.objet }}",
+        "emailType": "text",
+        "message": "={{ $json.output.message_1 }}",
+        "options": {
+          "appendAttribution": false
+        }
+      }
+    },
+    {
+      "id": "0bf5c83d-4a0a-48d9-a601-b87690936d4b",
+      "name": "Inscrire la séquence",
+      "type": "n8n-nodes-base.dataTable",
+      "typeVersion": 1.1,
+      "position": [
+        1472,
+        112
+      ],
+      "parameters": {
+        "resource": "row",
+        "operation": "insert",
+        "dataTableId": {
+          "__rl": true,
+          "mode": "list",
+          "value": "",
+          "cachedResultName": "Séquences de relance"
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "demarre_le": "={{ $now.toISO() }}",
+            "email": "={{ $('Configuration').item.json.email }}",
+            "entreprise": "={{ $('Configuration').item.json.entreprise }}",
+            "thread_id": "={{ $json.threadId }}",
+            "etape": 1,
+            "statut": "en_cours"
+          },
+          "schema": [
+            {
+              "id": "demarre_le",
+              "displayName": "demarre_le",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "dateTime",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "email",
+              "displayName": "email",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "entreprise",
+              "displayName": "entreprise",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "thread_id",
+              "displayName": "thread_id",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "etape",
+              "displayName": "etape",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "number",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "statut",
+              "displayName": "statut",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            }
+          ]
+        }
+      }
+    },
+    {
+      "id": "b7b589bb-c1c6-49e3-88e9-1b29f26f4313",
+      "name": "Attendre avant la relance 1",
+      "type": "n8n-nodes-base.wait",
+      "typeVersion": 1.1,
+      "position": [
+        1696,
+        112
+      ],
+      "parameters": {
+        "resume": "timeInterval",
+        "amount": "={{ $('Configuration').item.json.delai_relance_1_jours }}",
+        "unit": "days"
+      }
+    },
+    {
+      "id": "cf73c48a-646c-40cb-965a-68a66f87252f",
+      "name": "Relire la conversation (1)",
+      "type": "n8n-nodes-base.gmail",
+      "typeVersion": 2.2,
+      "position": [
+        1920,
+        112
+      ],
+      "parameters": {
+        "resource": "thread",
+        "operation": "get",
+        "threadId": "={{ $('Envoyer le premier message').item.json.threadId }}",
+        "simple": true,
+        "options": {}
+      }
+    },
+    {
+      "id": "1c93a557-fbd7-43f4-b740-e0f66471719d",
+      "name": "A répondu ? (1)",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        2144,
+        112
+      ],
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "loose"
+          },
+          "conditions": [
+            {
+              "leftValue": "={{ ($json.messages || []).length }}",
+              "operator": {
+                "type": "number",
+                "operation": "gt"
+              },
+              "rightValue": 1
+            }
+          ],
+          "combinator": "and"
+        }
+      }
+    },
+    {
+      "id": "6b85f307-60a2-4b72-beb9-28e7516b43e5",
+      "name": "Marquer : a répondu",
+      "type": "n8n-nodes-base.dataTable",
+      "typeVersion": 1.1,
+      "position": [
+        3264,
+        -96
+      ],
+      "parameters": {
+        "resource": "row",
+        "operation": "update",
+        "dataTableId": {
+          "__rl": true,
+          "mode": "list",
+          "value": "",
+          "cachedResultName": "Séquences de relance"
+        },
+        "matchType": "allConditions",
+        "filters": {
+          "conditions": [
+            {
+              "keyName": "thread_id",
+              "condition": "eq",
+              "keyValue": "={{ $('Envoyer le premier message').item.json.threadId }}"
+            }
+          ]
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "statut": "a_repondu"
+          },
+          "schema": [
+            {
+              "id": "statut",
+              "displayName": "statut",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            }
+          ]
+        }
+      }
+    },
+    {
+      "id": "31bf8e94-a540-480a-ab57-ccd44ef699de",
+      "name": "Prévenir : réponse reçue",
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1.2,
+      "position": [
+        3488,
+        -96
+      ],
+      "parameters": {
+        "resource": "message",
+        "operation": "sendMessage",
+        "chatId": "={{ $('Configuration').item.json.telegram_chat_id }}",
+        "text": "={{ '<b>' + $('Configuration').item.json.prenom + ' (' + $('Configuration').item.json.entreprise + ') a répondu</b>\\nLa séquence est arrêtée : à vous de reprendre la conversation.' }}",
+        "additionalFields": {
+          "appendAttribution": false,
+          "parse_mode": "HTML"
+        }
+      }
+    },
+    {
+      "id": "451c44e9-c582-4d1f-a712-7fea3ecad8cd",
+      "name": "Envoyer la relance 1",
+      "type": "n8n-nodes-base.gmail",
+      "typeVersion": 2.2,
+      "position": [
+        2368,
+        208
+      ],
+      "parameters": {
+        "resource": "thread",
+        "operation": "reply",
+        "threadId": "={{ $('Envoyer le premier message').item.json.threadId }}",
+        "emailType": "text",
+        "message": "={{ $('Écrire la séquence').item.json.output.message_2 }}",
+        "options": {}
+      }
+    },
+    {
+      "id": "ba20dce9-e219-4155-b6d8-553ee6b20746",
+      "name": "Attendre avant la relance 2",
+      "type": "n8n-nodes-base.wait",
+      "typeVersion": 1.1,
+      "position": [
+        2592,
+        208
+      ],
+      "parameters": {
+        "resume": "timeInterval",
+        "amount": "={{ $('Configuration').item.json.delai_relance_2_jours }}",
+        "unit": "days"
+      }
+    },
+    {
+      "id": "c118b1bf-c5f8-4033-8b6d-7eac1e556b0d",
+      "name": "Relire la conversation (2)",
+      "type": "n8n-nodes-base.gmail",
+      "typeVersion": 2.2,
+      "position": [
+        2816,
+        208
+      ],
+      "parameters": {
+        "resource": "thread",
+        "operation": "get",
+        "threadId": "={{ $('Envoyer le premier message').item.json.threadId }}",
+        "simple": true,
+        "options": {}
+      }
+    },
+    {
+      "id": "37a639c3-448e-4c55-ae48-425556264961",
+      "name": "A répondu ? (2)",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        3040,
+        208
+      ],
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "loose"
+          },
+          "conditions": [
+            {
+              "leftValue": "={{ ($json.messages || []).length }}",
+              "operator": {
+                "type": "number",
+                "operation": "gt"
+              },
+              "rightValue": 2
+            }
+          ],
+          "combinator": "and"
+        }
+      }
+    },
+    {
+      "id": "2bbb69ee-5565-4212-970f-e375acd8fbd0",
+      "name": "Envoyer le dernier message",
+      "type": "n8n-nodes-base.gmail",
+      "typeVersion": 2.2,
+      "position": [
+        3264,
+        304
+      ],
+      "parameters": {
+        "resource": "thread",
+        "operation": "reply",
+        "threadId": "={{ $('Envoyer le premier message').item.json.threadId }}",
+        "emailType": "text",
+        "message": "={{ $('Écrire la séquence').item.json.output.message_3 }}",
+        "options": {}
+      }
+    },
+    {
+      "id": "9756d721-5f2d-42b4-9aa6-1bde6126c5bc",
+      "name": "Clore sans réponse",
+      "type": "n8n-nodes-base.dataTable",
+      "typeVersion": 1.1,
+      "position": [
+        3488,
+        304
+      ],
+      "parameters": {
+        "resource": "row",
+        "operation": "update",
+        "dataTableId": {
+          "__rl": true,
+          "mode": "list",
+          "value": "",
+          "cachedResultName": "Séquences de relance"
+        },
+        "matchType": "allConditions",
+        "filters": {
+          "conditions": [
+            {
+              "keyName": "thread_id",
+              "condition": "eq",
+              "keyValue": "={{ $('Envoyer le premier message').item.json.threadId }}"
+            }
+          ]
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "etape": 3,
+            "statut": "terminee_sans_reponse"
+          },
+          "schema": [
+            {
+              "id": "etape",
+              "displayName": "etape",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "number",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "statut",
+              "displayName": "statut",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            }
+          ]
+        }
+      }
+    }
+  ],
+  "connections": {
+    "Démarrer une séquence": {
+      "main": [
+        [
+          {
+            "node": "Configuration",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Configuration": {
+      "main": [
+        [
+          {
+            "node": "Lire le site",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Lire le site": {
+      "main": [
+        [
+          {
+            "node": "Préparer le contexte",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Préparer le contexte": {
+      "main": [
+        [
+          {
+            "node": "Écrire la séquence",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Écrire la séquence": {
+      "main": [
+        [
+          {
+            "node": "Envoyer le premier message",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Claude": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "Écrire la séquence",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Envoyer le premier message": {
+      "main": [
+        [
+          {
+            "node": "Inscrire la séquence",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Inscrire la séquence": {
+      "main": [
+        [
+          {
+            "node": "Attendre avant la relance 1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Attendre avant la relance 1": {
+      "main": [
+        [
+          {
+            "node": "Relire la conversation (1)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Relire la conversation (1)": {
+      "main": [
+        [
+          {
+            "node": "A répondu ? (1)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "A répondu ? (1)": {
+      "main": [
+        [
+          {
+            "node": "Marquer : a répondu",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Envoyer la relance 1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Marquer : a répondu": {
+      "main": [
+        [
+          {
+            "node": "Prévenir : réponse reçue",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Envoyer la relance 1": {
+      "main": [
+        [
+          {
+            "node": "Attendre avant la relance 2",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Attendre avant la relance 2": {
+      "main": [
+        [
+          {
+            "node": "Relire la conversation (2)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Relire la conversation (2)": {
+      "main": [
+        [
+          {
+            "node": "A répondu ? (2)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "A répondu ? (2)": {
+      "main": [
+        [
+          {
+            "node": "Marquer : a répondu",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Envoyer le dernier message",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Envoyer le dernier message": {
+      "main": [
+        [
+          {
+            "node": "Clore sans réponse",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1"
+  }
+}
