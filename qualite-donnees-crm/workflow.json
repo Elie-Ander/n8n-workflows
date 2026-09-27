@@ -1,0 +1,662 @@
+{
+  "name": "Qualité des données CRM : doublons, formats et score hebdomadaire",
+  "nodes": [
+    {
+      "id": "a2e5c66c-7072-4914-9da9-0341a3e55f8c",
+      "name": "Présentation",
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        -60,
+        -551
+      ],
+      "parameters": {
+        "content": "## Qualité des données CRM\nPar **Elie LISSODA**, automatisation marketing · [elie.koudujob.com](https://elie.koudujob.com)\n\nUn CRM s'abîme sans bruit : doublons, téléphones mal saisis, e-mails invalides. Ce contrôle du lundi donne une note à votre base et corrige ce qui peut l'être.\n\nPour le lancer : essayez d'abord en mode exemple. Ensuite, connectez HubSpot et Gmail et créez la table « Historique qualité CRM ».\n\nUne question ? Je suis disponible sur [elie.koudujob.com](https://elie.koudujob.com) 😉",
+        "color": 2,
+        "width": 600,
+        "height": 361
+      }
+    },
+    {
+      "id": "d2ff03c0-9fd3-481e-9222-5292b03a8e86",
+      "name": "Étape 1",
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        -60,
+        -125
+      ],
+      "parameters": {
+        "content": "### 1. Chaque lundi à 8 h\nEn mode exemple, rien n'est écrit dans votre CRM.",
+        "color": 7,
+        "width": 432,
+        "height": 497
+      }
+    },
+    {
+      "id": "adb7ea1c-e2a7-4bde-bbcc-a7cbadc3f348",
+      "name": "Étape 2",
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        388,
+        -125
+      ],
+      "parameters": {
+        "content": "### 2. Lire les contacts\nTous vos contacts HubSpot, page par page, ou douze contacts d'exemple.",
+        "color": 5,
+        "width": 656,
+        "height": 497
+      }
+    },
+    {
+      "id": "e1841f2f-3907-4b3e-b071-0d0a457a732e",
+      "name": "Étape 3",
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        1060,
+        -150
+      ],
+      "parameters": {
+        "content": "### 3. Contrôler et corriger\nChaque fiche reçoit une note. Les corrections partent seulement si vous l'autorisez. Les doublons ne sont jamais fusionnés seuls.",
+        "color": 1,
+        "width": 880,
+        "height": 426
+      }
+    },
+    {
+      "id": "5f58c963-d32f-489a-8059-6a2418afa3d6",
+      "name": "Étape 4",
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        1956,
+        -29
+      ],
+      "parameters": {
+        "content": "### 4. Le rapport\nLe score est gardé chaque semaine, les fiches à reprendre arrivent par e-mail.",
+        "color": 4,
+        "width": 668,
+        "height": 305
+      }
+    },
+    {
+      "id": "9882e690-f5be-4054-93fa-7e0c9cd818a7",
+      "name": "Chaque lundi à 8 h",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.2,
+      "position": [
+        0,
+        0
+      ],
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "field": "weeks",
+              "weeksInterval": 1,
+              "triggerAtDay": [
+                1
+              ],
+              "triggerAtHour": 8
+            }
+          ]
+        }
+      }
+    },
+    {
+      "id": "a13bdba8-7874-4d62-940e-0787271111e4",
+      "name": "Lancer maintenant",
+      "type": "n8n-nodes-base.manualTrigger",
+      "typeVersion": 1,
+      "position": [
+        0,
+        192
+      ],
+      "parameters": {}
+    },
+    {
+      "id": "fb784cad-51e8-4591-a2af-a65c37696a4b",
+      "name": "Configuration",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        224,
+        96
+      ],
+      "parameters": {
+        "mode": "manual",
+        "includeOtherFields": false,
+        "assignments": {
+          "assignments": [
+            {
+              "id": "q-demo",
+              "name": "mode_demo",
+              "value": true,
+              "type": "boolean"
+            },
+            {
+              "id": "q-appl",
+              "name": "appliquer_corrections",
+              "value": false,
+              "type": "boolean"
+            },
+            {
+              "id": "q-mail",
+              "name": "email_rapport",
+              "value": "",
+              "type": "string"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "id": "9fc25102-b4d9-4220-b0f0-7f158fbac79a",
+      "name": "Données d'exemple ?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        448,
+        96
+      ],
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "loose"
+          },
+          "conditions": [
+            {
+              "leftValue": "={{ $json.mode_demo }}",
+              "operator": {
+                "type": "boolean",
+                "operation": "true",
+                "singleValue": true
+              },
+              "rightValue": ""
+            }
+          ],
+          "combinator": "and"
+        }
+      }
+    },
+    {
+      "id": "90d7a4fa-96ae-4fc2-ae0f-6efe45c5acef",
+      "name": "Contacts d'exemple",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        672,
+        0
+      ],
+      "parameters": {
+        "mode": "runOnceForAllItems",
+        "language": "javaScript",
+        "jsCode": "// Douze contacts abîmés comme après plusieurs imports : casse, espaces, formats, doublons, trous.\nreturn [\n  { id: '101', firstname: '  marie ', lastname: 'DURAND', email: 'Marie.Durand@exemple.fr ', phone: '06 39 98 00 01', company: 'Atelier Durand', jobtitle: 'Directrice marketing' },\n  { id: '102', firstname: 'Marie', lastname: 'Durand', email: 'marie.durand@exemple.fr', phone: '+33 6 39 98 00 01', company: 'Atelier Durand ', jobtitle: '' },\n  { id: '103', firstname: 'jean-pierre', lastname: 'moreau', email: 'jp.moreau@exemple', phone: '0639980002', company: 'Moreau & Fils', jobtitle: 'Gérant' },\n  { id: '104', firstname: 'Sophie', lastname: 'Lefèvre', email: 'contact@exemple.fr', phone: '01.99.00.12.34', company: 'Lefèvre Conseil', jobtitle: 'Associée' },\n  { id: '105', firstname: 'Karim', lastname: 'Benali', email: 'karim.benali@exemple.fr', phone: '0033 6 39 98 00 03', company: '', jobtitle: 'Responsable achats' },\n  { id: '106', firstname: 'Lucie', lastname: '', email: 'lucie@exemple.fr', phone: '12 34', company: 'Studio Nova', jobtitle: '' },\n  { id: '107', firstname: 'Thomas', lastname: 'Girard', email: 'pas une adresse', phone: '', company: 'Girard Logistique', jobtitle: 'Directeur commercial' },\n  { id: '108', firstname: 'THOMAS', lastname: 'GIRARD', email: 'thomas.girard@exemple.fr', phone: '6 39 98 00 04', company: 'girard logistique', jobtitle: 'Dir. commercial' },\n  { id: '109', firstname: 'Camille', lastname: 'Roux', email: 'camille.roux@exemple.fr', phone: '+33 (0)6 39 98 00 05', company: 'Roux Paysage', jobtitle: 'Fondatrice' },\n  { id: '110', firstname: 'Nicolas', lastname: 'Faure', email: 'nicolas.faure@exemple.fr,', phone: '06 39 98 00 06', company: 'Faure Industrie', jobtitle: 'Acheteur' },\n  { id: '111', firstname: 'Emma', lastname: 'Blanc', email: 'EMMA.BLANC@exemple.fr', phone: '06 39 98 00 07', company: 'Blanc Immobilier', jobtitle: 'Agente immobilière' },\n  { id: '112', firstname: 'Hugo', lastname: 'Mercier', email: 'hugo.mercier@exemple.fr', phone: '+44 20 7946 0958', company: 'Mercier Ltd', jobtitle: 'Sales manager' }\n].map(c => ({ json: c }));"
+      }
+    },
+    {
+      "id": "0441d1b6-063c-4d74-9934-e50a0d504a0e",
+      "name": "Lire les contacts HubSpot",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        672,
+        192
+      ],
+      "parameters": {
+        "url": "https://api.hubapi.com/crm/v3/objects/contacts",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "hubspotAppToken",
+        "sendQuery": true,
+        "queryParameters": {
+          "parameters": [
+            {
+              "name": "limit",
+              "value": "100"
+            },
+            {
+              "name": "properties",
+              "value": "firstname,lastname,email,phone,company,jobtitle"
+            }
+          ]
+        },
+        "options": {
+          "pagination": {
+            "pagination": {
+              "paginationMode": "updateAParameterInEachRequest",
+              "parameters": {
+                "parameters": [
+                  {
+                    "type": "qs",
+                    "name": "after",
+                    "value": "={{ $response.body.paging.next.after }}"
+                  }
+                ]
+              },
+              "paginationCompleteWhen": "other",
+              "completeExpression": "={{ !$response.body.paging }}",
+              "limitPagesFetched": true,
+              "maxRequests": 50
+            }
+          }
+        }
+      }
+    },
+    {
+      "id": "def78095-5b41-4e76-b562-eb016dc2ec78",
+      "name": "Une fiche par contact",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        896,
+        192
+      ],
+      "parameters": {
+        "mode": "runOnceForAllItems",
+        "language": "javaScript",
+        "jsCode": "// Chaque page HubSpot contient jusqu'à 100 contacts : on les remet à plat.\nreturn $input.all().flatMap(page => (page.json.results || []).map(c => ({ json: { id: c.id, ...c.properties } })));"
+      }
+    },
+    {
+      "id": "e3d5c6e9-061e-4250-a2e0-81540859c535",
+      "name": "Analyser la qualité",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1120,
+        96
+      ],
+      "parameters": {
+        "mode": "runOnceForAllItems",
+        "language": "javaScript",
+        "jsCode": "const cfg = $('Configuration').first().json;\n// Fautes de frappe fréquentes sur les domaines grand public : corrigées, jamais devinées ailleurs.\nconst FAUTES = { 'gmial.com': 'gmail.com', 'gmai.com': 'gmail.com', 'gamil.com': 'gmail.com', 'hotmial.com': 'hotmail.com', 'hotmail.fe': 'hotmail.fr', 'yahooo.fr': 'yahoo.fr', 'outlok.com': 'outlook.com', 'orange.fe': 'orange.fr', 'wanadoo.fe': 'wanadoo.fr' };\nconst GENERIQUES = ['contact', 'info', 'bonjour', 'hello', 'admin', 'commercial', 'sales', 'support', 'noreply', 'no-reply'];\n\nconst brut = v => (v === null || v === undefined) ? '' : String(v);\nconst propre = v => brut(v).replace(/ +/g, ' ').trim();\nconst majuscules = v => propre(v).toLowerCase().replace(/(^|[ '-])([a-zà-ÿ])/g, (m, a, b) => a + b.toUpperCase());\nconst cle = v => propre(v).toLowerCase().normalize('NFD').replace(/[^a-z0-9]/g, '');\n\nfunction email(v) {\n  let e = propre(v).toLowerCase().replace(/ /g, '').replace(/[,;.]+$/, '');\n  if (!e) return { valeur: '', etat: 'absent' };\n  const [local, domaine] = e.split('@');\n  if (domaine && FAUTES[domaine]) return { valeur: local + '@' + FAUTES[domaine], etat: 'corrige' };\n  return /^[^@ ]+@[^@ ]+[.][a-z]{2,}$/.test(e) ? { valeur: e, etat: 'ok' } : { valeur: e, etat: 'invalide' };\n}\n\n// Numéros français ramenés au format international +33 ; les numéros étrangers déjà en +XX sont gardés.\nfunction telephone(v) {\n  const b = propre(v);\n  if (!b) return { valeur: '', etat: 'absent' };\n  let n = b.replace(/[^0-9+]/g, '');\n  if (n.startsWith('00')) n = '+' + n.slice(2);\n  if (n.startsWith('+33')) { n = n.slice(3); if (!n.startsWith('0')) n = '0' + n; }\n  if (/^[1-9][0-9]{8}$/.test(n)) n = '0' + n;\n  if (/^0[1-9][0-9]{8}$/.test(n)) return { valeur: '+33' + n.slice(1), etat: 'ok' };\n  if (/^[+][1-9][0-9]{7,14}$/.test(n)) return { valeur: n, etat: 'ok' };\n  return { valeur: b, etat: 'invalide' };\n}\n\nconst fiches = $input.all().map((item, i) => {\n  const c = item.json;\n  const id = brut(c.id || i + 1);\n  const mail = email(c.email);\n  const tel = telephone(c.phone);\n  const apres = { firstname: majuscules(c.firstname), lastname: majuscules(c.lastname), email: mail.valeur, phone: tel.valeur, company: propre(c.company), jobtitle: propre(c.jobtitle) };\n  const problemes = [];\n  let score = 100;\n  if (mail.etat === 'absent') { problemes.push('e-mail manquant'); score -= 35; }\n  if (mail.etat === 'invalide') { problemes.push('e-mail invalide'); score -= 35; }\n  if (mail.etat !== 'invalide' && GENERIQUES.includes(apres.email.split('@')[0])) { problemes.push('adresse générique'); score -= 5; }\n  if (tel.etat === 'absent') { problemes.push('téléphone manquant'); score -= 5; }\n  if (tel.etat === 'invalide') { problemes.push('téléphone invalide'); score -= 10; }\n  if (!apres.firstname || !apres.lastname) { problemes.push('nom incomplet'); score -= 15; }\n  if (!apres.company) { problemes.push('entreprise manquante'); score -= 15; }\n  if (!apres.jobtitle) { problemes.push('poste manquant'); score -= 10; }\n  const corrections = {};\n  for (const champ of Object.keys(apres)) {\n    if (champ === 'email' && mail.etat === 'invalide') continue;\n    if (champ === 'phone' && tel.etat === 'invalide') continue;\n    if (apres[champ] && apres[champ] !== brut(c[champ])) corrections[champ] = apres[champ];\n  }\n  const cles = [];\n  if (apres.email && mail.etat !== 'invalide') cles.push('email:' + apres.email);\n  if (tel.etat === 'ok') cles.push('tel:' + apres.phone);\n  if (apres.lastname && apres.company) cles.push('nom:' + cle(apres.firstname + apres.lastname) + '|' + cle(apres.company));\n  const nom = (apres.firstname + ' ' + apres.lastname).trim() || apres.email || 'contact ' + id;\n  return { id, nom, mail: mail.etat, problemes, score, corrections, cles };\n});\n\n// Regroupement des doublons : deux fiches qui partagent un e-mail, un téléphone ou nom + entreprise.\nconst parent = fiches.map((f, i) => i);\nconst racine = i => parent[i] === i ? i : (parent[i] = racine(parent[i]));\nconst vu = {};\nfiches.forEach((f, i) => f.cles.forEach(k => { if (k in vu) parent[racine(i)] = racine(vu[k]); else vu[k] = i; }));\nconst groupes = {};\nfiches.forEach((f, i) => { const r = racine(i); (groupes[r] = groupes[r] || []).push(i); });\nconst MOTIFS = { email: 'même e-mail', tel: 'même téléphone', nom: 'même nom et entreprise' };\nconst doublons = Object.values(groupes).filter(g => g.length > 1).map(g => {\n  const compte = {};\n  g.forEach(i => fiches[i].cles.forEach(k => { compte[k] = (compte[k] || 0) + 1; }));\n  const motifs = [...new Set(Object.keys(compte).filter(k => compte[k] > 1).map(k => MOTIFS[k.split(':')[0]]))];\n  g.forEach(i => { fiches[i].problemes.push('doublon probable'); fiches[i].score -= 15; });\n  return { contacts: g.map(i => fiches[i].nom + ' (' + fiches[i].id + ')'), motifs };\n});\nfiches.forEach(f => { f.score = Math.max(0, f.score); });\n\nconst total = fiches.length;\nconst INCOMPLET = ['nom incomplet', 'entreprise manquante', 'poste manquant'];\nreturn [{ json: {\n  source: cfg.mode_demo ? 'exemple' : 'hubspot',\n  date: $now.toISO(),\n  total,\n  score: total ? Math.round(fiches.reduce((s, f) => s + f.score, 0) / total) : 0,\n  emails_a_corriger: fiches.filter(f => f.mail === 'absent' || f.mail === 'invalide').length,\n  emails_normalises: fiches.filter(f => f.corrections.email).length,\n  telephones_normalises: fiches.filter(f => f.corrections.phone).length,\n  fiches_incompletes: fiches.filter(f => f.problemes.some(p => INCOMPLET.includes(p))).length,\n  doublons,\n  corrections: fiches.filter(f => Object.keys(f.corrections).length).map(f => ({ id: f.id, nom: f.nom, champs: f.corrections })),\n  a_revoir: fiches.filter(f => f.problemes.length).sort((a, b) => a.score - b.score).slice(0, 15).map(f => ({ id: f.id, nom: f.nom, score: f.score, problemes: f.problemes }))\n} }];"
+      }
+    },
+    {
+      "id": "abc4b089-4a4d-48e8-a500-abadf74d8c84",
+      "name": "Écrire dans HubSpot ?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        1344,
+        96
+      ],
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "loose"
+          },
+          "conditions": [
+            {
+              "leftValue": "={{ !$('Configuration').first().json.mode_demo && $('Configuration').first().json.appliquer_corrections && $json.corrections.length > 0 }}",
+              "operator": {
+                "type": "boolean",
+                "operation": "true",
+                "singleValue": true
+              },
+              "rightValue": ""
+            }
+          ],
+          "combinator": "and"
+        }
+      }
+    },
+    {
+      "id": "2c4e1420-a295-463a-9556-940e8a17fe65",
+      "name": "Préparer les lots",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1568,
+        0
+      ],
+      "parameters": {
+        "mode": "runOnceForAllItems",
+        "language": "javaScript",
+        "jsCode": "// L'API HubSpot accepte 100 fiches par lot de mise à jour.\nconst corrections = $input.first().json.corrections;\nconst lots = [];\nfor (let i = 0; i < corrections.length; i += 100) {\n  lots.push({ json: { inputs: corrections.slice(i, i + 100).map(c => ({ id: c.id, properties: c.champs })) } });\n}\nreturn lots;"
+      }
+    },
+    {
+      "id": "c59656fa-a866-4326-9354-d67da46e1b78",
+      "name": "Envoyer les corrections à HubSpot",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        1792,
+        0
+      ],
+      "parameters": {
+        "method": "POST",
+        "url": "https://api.hubapi.com/crm/v3/objects/contacts/batch/update",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "hubspotAppToken",
+        "sendBody": true,
+        "contentType": "json",
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify($json) }}",
+        "options": {}
+      }
+    },
+    {
+      "id": "48606fc7-d511-4bd8-ab39-0f66d93a5ca3",
+      "name": "Rédiger le rapport",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        2016,
+        96
+      ],
+      "parameters": {
+        "mode": "runOnceForAllItems",
+        "language": "javaScript",
+        "jsCode": "const r = $('Analyser la qualité').first().json;\nconst cfg = $('Configuration').first().json;\nconst envoye = $('Envoyer les corrections à HubSpot').isExecuted;\nconst esc = v => String(v === undefined || v === null ? '' : v).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');\nconst couleur = r.score >= 80 ? '#1a7f37' : r.score >= 60 ? '#9a6700' : '#c62828';\nconst ligne = (a, b) => '<tr><td style=\"padding:6px 16px 6px 0;color:#57606a\">' + a + '</td><td style=\"padding:6px 0;font-weight:600;text-align:right\">' + b + '</td></tr>';\n\nlet ecriture;\nif (cfg.mode_demo) ecriture = \"Données d'exemple : rien n'a été écrit dans le CRM.\";\nelse if (envoye) ecriture = r.corrections.length + ' fiches corrigées dans HubSpot (casse, espaces, formats). Les doublons ne sont jamais fusionnés automatiquement.';\nelse ecriture = r.corrections.length + \" corrections prêtes, non appliquées : passez appliquer_corrections à vrai dans Configuration pour les écrire.\";\n\nlet html = '<div style=\"font-family:Arial,Helvetica,sans-serif;max-width:640px;color:#1f2328;line-height:1.5\">'\n  + '<h2 style=\"margin:0 0 4px;font-size:20px\">Qualité des données CRM</h2>'\n  + '<p style=\"margin:0 0 20px;color:#57606a\">' + r.total + ' contacts analysés, source : ' + (r.source === 'exemple' ? 'exemple' : 'HubSpot') + '</p>'\n  + '<p style=\"margin:0 0 20px\"><span style=\"font-size:40px;font-weight:700;color:' + couleur + '\">' + r.score + '</span><span style=\"color:#57606a\"> / 100</span></p>'\n  + '<table style=\"border-collapse:collapse;margin-bottom:20px\">'\n  + ligne('Doublons probables', r.doublons.length)\n  + ligne('E-mails manquants ou invalides', r.emails_a_corriger)\n  + ligne('E-mails remis en forme', r.emails_normalises)\n  + ligne('Téléphones au format international', r.telephones_normalises)\n  + ligne('Fiches incomplètes', r.fiches_incompletes)\n  + '</table>'\n  + '<p style=\"margin:0 0 20px;padding:10px 12px;background:#f6f8fa;border-radius:6px\">' + esc(ecriture) + '</p>';\n\nif (r.doublons.length) {\n  html += '<h3 style=\"font-size:16px;margin:0 0 8px\">Doublons à trancher</h3><ul style=\"margin:0 0 20px;padding-left:18px\">'\n    + r.doublons.map(d => '<li>' + esc(d.contacts.join(' / ')) + ' <span style=\"color:#57606a\">(' + esc(d.motifs.join(', ')) + ')</span></li>').join('')\n    + '</ul>';\n}\nif (r.a_revoir.length) {\n  html += '<h3 style=\"font-size:16px;margin:0 0 8px\">Fiches à revoir en priorité</h3><table style=\"border-collapse:collapse;width:100%\">'\n    + r.a_revoir.map(f => '<tr><td style=\"padding:4px 12px 4px 0;font-weight:600\">' + f.score + '</td><td style=\"padding:4px 12px 4px 0\">' + esc(f.nom) + '</td><td style=\"padding:4px 0;color:#57606a\">' + esc(f.problemes.join(', ')) + '</td></tr>').join('')\n    + '</table>';\n}\nhtml += '</div>';\n\nreturn [{ json: {\n  html,\n  objet: 'Qualité CRM : ' + r.score + '/100, ' + r.doublons.length + ' doublons probables',\n  date: r.date,\n  source: r.source,\n  contacts: r.total,\n  score: r.score,\n  doublons: r.doublons.length,\n  emails_a_corriger: r.emails_a_corriger,\n  telephones_normalises: r.telephones_normalises,\n  fiches_incompletes: r.fiches_incompletes,\n  corrections_appliquees: envoye ? r.corrections.length : 0\n} }];"
+      }
+    },
+    {
+      "id": "9838796d-9efc-4d84-8287-a353f03eb234",
+      "name": "Historiser le score",
+      "type": "n8n-nodes-base.dataTable",
+      "typeVersion": 1.1,
+      "position": [
+        2240,
+        96
+      ],
+      "parameters": {
+        "resource": "row",
+        "operation": "insert",
+        "dataTableId": {
+          "__rl": true,
+          "mode": "list",
+          "value": "",
+          "cachedResultName": "Historique qualité CRM"
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "date": "={{ $json.date }}",
+            "source": "={{ $json.source }}",
+            "contacts": "={{ $json.contacts }}",
+            "score": "={{ $json.score }}",
+            "doublons": "={{ $json.doublons }}",
+            "emails_a_corriger": "={{ $json.emails_a_corriger }}",
+            "telephones_normalises": "={{ $json.telephones_normalises }}",
+            "fiches_incompletes": "={{ $json.fiches_incompletes }}",
+            "corrections_appliquees": "={{ $json.corrections_appliquees }}"
+          },
+          "schema": [
+            {
+              "id": "date",
+              "displayName": "date",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "dateTime",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "source",
+              "displayName": "source",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "contacts",
+              "displayName": "contacts",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "number",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "score",
+              "displayName": "score",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "number",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "doublons",
+              "displayName": "doublons",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "number",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "emails_a_corriger",
+              "displayName": "emails_a_corriger",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "number",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "telephones_normalises",
+              "displayName": "telephones_normalises",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "number",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "fiches_incompletes",
+              "displayName": "fiches_incompletes",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "number",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "corrections_appliquees",
+              "displayName": "corrections_appliquees",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "number",
+              "canBeUsedToMatch": true
+            }
+          ]
+        }
+      }
+    },
+    {
+      "id": "106d580e-69f9-4681-8244-0b56be4b1d4d",
+      "name": "Envoyer le rapport",
+      "type": "n8n-nodes-base.gmail",
+      "typeVersion": 2.2,
+      "position": [
+        2464,
+        96
+      ],
+      "parameters": {
+        "resource": "message",
+        "operation": "send",
+        "sendTo": "={{ $('Configuration').first().json.email_rapport }}",
+        "subject": "={{ $('Rédiger le rapport').first().json.objet }}",
+        "emailType": "html",
+        "message": "={{ $('Rédiger le rapport').first().json.html }}",
+        "options": {
+          "appendAttribution": false
+        }
+      }
+    }
+  ],
+  "connections": {
+    "Chaque lundi à 8 h": {
+      "main": [
+        [
+          {
+            "node": "Configuration",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Lancer maintenant": {
+      "main": [
+        [
+          {
+            "node": "Configuration",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Configuration": {
+      "main": [
+        [
+          {
+            "node": "Données d'exemple ?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Données d'exemple ?": {
+      "main": [
+        [
+          {
+            "node": "Contacts d'exemple",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Lire les contacts HubSpot",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Contacts d'exemple": {
+      "main": [
+        [
+          {
+            "node": "Analyser la qualité",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Lire les contacts HubSpot": {
+      "main": [
+        [
+          {
+            "node": "Une fiche par contact",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Une fiche par contact": {
+      "main": [
+        [
+          {
+            "node": "Analyser la qualité",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Analyser la qualité": {
+      "main": [
+        [
+          {
+            "node": "Écrire dans HubSpot ?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Écrire dans HubSpot ?": {
+      "main": [
+        [
+          {
+            "node": "Préparer les lots",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Rédiger le rapport",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Préparer les lots": {
+      "main": [
+        [
+          {
+            "node": "Envoyer les corrections à HubSpot",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Envoyer les corrections à HubSpot": {
+      "main": [
+        [
+          {
+            "node": "Rédiger le rapport",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Rédiger le rapport": {
+      "main": [
+        [
+          {
+            "node": "Historiser le score",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Historiser le score": {
+      "main": [
+        [
+          {
+            "node": "Envoyer le rapport",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1"
+  }
+}
