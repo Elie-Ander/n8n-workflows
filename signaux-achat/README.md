@@ -13,6 +13,8 @@ Une entreprise qui lève des fonds, recrute ou change de dirigeant est souvent p
 5. **Créer la tâche.** Au-dessus du score minimum, le commercial reçoit une tâche dans HubSpot.
 6. **Prévenir l'équipe.** Un message Telegram résume les comptes chauds de la semaine.
 
+Testé en réel sur 20 entreprises lyonnaises : 36 signaux datés et sourcés en 77 secondes, 2 comptes chauds repérés.
+
 ## Pour l'installer
 
 1. Créez vos identifiants : Perplexity, Anthropic, HubSpot (jeton d'application privée qui peut créer des tâches) et Telegram.
