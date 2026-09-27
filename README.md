@@ -59,4 +59,4 @@ Un souci pour installer un workflow, ou une idée d'automatisation pour votre é
 
 **Elie LISSODA**  
 SEO & GEO et automatisation marketing, Lyon  
-Certifié n8n Foundations & Workflow Automation et HubSpot Revenue Operations (2026)
+Certifications : n8n Foundations Professional Certificate, HubSpot Revenue Operations (2026)
