@@ -1,0 +1,297 @@
+{
+  "name": "Agent WhatsApp : conversations et alertes",
+  "nodes": [
+    {
+      "id": "f603dd3d-9a26-4a1a-8d9a-3df44df576b2",
+      "name": "Présentation",
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        -60,
+        -326
+      ],
+      "parameters": {
+        "content": "## Agent WhatsApp : conversations et alertes\nPar **Elie LISSODA**, automatisation marketing · [elie.koudujob.com](https://elie.koudujob.com)\n\nVotre agent WhatsApp répond seul. Ici, n8n garde chaque échange dans une table et vous prévient sur Telegram quand l'agent passe la main à une personne.\n\nPour le lancer : créez la table « Conversations WhatsApp », connectez Telegram, protégez le webhook par un secret, puis donnez son adresse à votre agent.\n\nUne question ? Je suis disponible sur [elie.koudujob.com](https://elie.koudujob.com) 😉",
+        "color": 2,
+        "width": 600,
+        "height": 336
+      }
+    },
+    {
+      "id": "67722c00-a8bf-43fd-badf-da59a487cd92",
+      "name": "Étape 1",
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        -60,
+        150
+      ],
+      "parameters": {
+        "content": "### 1. Recevoir l'événement\nL'agent appelle cette adresse après chaque réponse. Le secret partagé écarte tout autre appelant.",
+        "color": 7,
+        "width": 460,
+        "height": 330
+      }
+    },
+    {
+      "id": "805129c4-3ec3-4a58-afad-c750f77242f0",
+      "name": "Étape 2",
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        420,
+        100
+      ],
+      "parameters": {
+        "content": "### 2. Garder une trace\nChaque échange devient une ligne : date, téléphone, message du client, réponse de l'agent.",
+        "color": 1,
+        "width": 220,
+        "height": 380
+      }
+    },
+    {
+      "id": "41dbd530-5580-4918-8cb1-23a645b8245e",
+      "name": "Étape 3",
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        660,
+        50
+      ],
+      "parameters": {
+        "content": "### 3. Alerter\nSi l'agent a passé la main, vous recevez le numéro et le message sur Telegram.",
+        "color": 3,
+        "width": 460,
+        "height": 430
+      }
+    },
+    {
+      "id": "8d3dc664-97da-4aa5-bf37-2c63870093c1",
+      "name": "Recevoir un événement",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2.1,
+      "position": [
+        0,
+        300
+      ],
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "agent-whatsapp",
+        "authentication": "headerAuth",
+        "options": {}
+      }
+    },
+    {
+      "id": "e2d7669d-98dd-42bd-82fc-d6ccc6ba92f8",
+      "name": "Configuration",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        240,
+        300
+      ],
+      "parameters": {
+        "mode": "manual",
+        "includeOtherFields": true,
+        "assignments": {
+          "assignments": [
+            {
+              "id": "cfg-chat",
+              "name": "telegram_chat_id",
+              "value": "",
+              "type": "string"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "id": "efa475cb-e531-4d35-99a3-e6d2aef8b633",
+      "name": "Ranger l'échange",
+      "type": "n8n-nodes-base.dataTable",
+      "typeVersion": 1.1,
+      "position": [
+        480,
+        300
+      ],
+      "parameters": {
+        "resource": "row",
+        "operation": "insert",
+        "dataTableId": {
+          "__rl": true,
+          "mode": "list",
+          "value": "",
+          "cachedResultName": "Conversations WhatsApp"
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "recu_le": "={{ $('Recevoir un événement').item.json.body.date }}",
+            "evenement": "={{ $('Recevoir un événement').item.json.body.evenement }}",
+            "telephone": "={{ $('Recevoir un événement').item.json.body.telephone }}",
+            "message_client": "={{ $('Recevoir un événement').item.json.body.message_client }}",
+            "reponse_agent": "={{ $('Recevoir un événement').item.json.body.reponse_agent }}",
+            "pause_heures": "={{ $('Recevoir un événement').item.json.body.pause_heures ?? 0 }}"
+          },
+          "schema": [
+            {
+              "id": "recu_le",
+              "displayName": "recu_le",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "dateTime",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "evenement",
+              "displayName": "evenement",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "telephone",
+              "displayName": "telephone",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "message_client",
+              "displayName": "message_client",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "reponse_agent",
+              "displayName": "reponse_agent",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "pause_heures",
+              "displayName": "pause_heures",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "number",
+              "canBeUsedToMatch": true
+            }
+          ]
+        }
+      }
+    },
+    {
+      "id": "5b66189b-5ffa-4f37-aa1e-80f0ae31bd6f",
+      "name": "Demande d'un humain ?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        720,
+        300
+      ],
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 1
+          },
+          "conditions": [
+            {
+              "leftValue": "={{ $('Recevoir un événement').item.json.body.evenement }}",
+              "operator": {
+                "type": "string",
+                "operation": "equals"
+              },
+              "rightValue": "demande_humain"
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      }
+    },
+    {
+      "id": "7f1d7a66-cb5a-43d7-85a5-69d6940363ec",
+      "name": "Prévenir le responsable",
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1.2,
+      "position": [
+        960,
+        200
+      ],
+      "parameters": {
+        "resource": "message",
+        "operation": "sendMessage",
+        "chatId": "={{ $('Configuration').item.json.telegram_chat_id }}",
+        "text": "=Un client attend une réponse humaine\n\nTéléphone : +{{ $('Recevoir un événement').item.json.body.telephone }}\nSon message : {{ $('Recevoir un événement').item.json.body.message_client }}\nRéponse de l'agent : {{ $('Recevoir un événement').item.json.body.reponse_agent }}\n\nL'agent se tait {{ $('Recevoir un événement').item.json.body.pause_heures }} h sur cette conversation : à vous de répondre.",
+        "additionalFields": {
+          "appendAttribution": false
+        }
+      }
+    }
+  ],
+  "connections": {
+    "Recevoir un événement": {
+      "main": [
+        [
+          {
+            "node": "Configuration",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Configuration": {
+      "main": [
+        [
+          {
+            "node": "Ranger l'échange",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Ranger l'échange": {
+      "main": [
+        [
+          {
+            "node": "Demande d'un humain ?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Demande d'un humain ?": {
+      "main": [
+        [
+          {
+            "node": "Prévenir le responsable",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        []
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1"
+  }
+}

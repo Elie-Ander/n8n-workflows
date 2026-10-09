@@ -1,6 +1,6 @@
 # Workflows n8n
 
-Je m'appelle Elie LISSODA et je construis des automatisations marketing et commerciales avec n8n et l'IA. Voici quinze workflows que j'ai conçus pour de vrais besoins : être cité par les IA, suivre ses chiffres sans y passer la matinée, trouver et relancer des prospects, garder un CRM propre, lire des factures, surveiller ses automatisations.
+Je m'appelle Elie LISSODA et je construis des automatisations marketing et commerciales avec n8n et l'IA. Voici seize workflows que j'ai conçus pour de vrais besoins : être cité par les IA, suivre ses chiffres sans y passer la matinée, trouver et relancer des prospects, garder un CRM propre, lire des factures, surveiller ses automatisations.
 
 Chacun est prêt à importer. Dans n8n, des notes de couleur expliquent chaque étape. Sur GitHub, le README du dossier dit ce qu'il fait, comment l'installer, et ce qui a été testé.
 
@@ -32,6 +32,7 @@ Chacun est prêt à importer. Dans n8n, des notes de couleur expliquent chaque �
 | [Relances personnalisées par IA](relances-personnalisees/) | Écrit une séquence de trois messages pour chaque prospect et l'arrête dès qu'il répond | Claude, Gmail, Telegram |
 | [Qualité des données CRM](qualite-donnees-crm/) | Remet en forme e-mails et téléphones, regroupe les doublons, note la base sur 100 et corrige HubSpot par lots | HubSpot, Gmail |
 | [Migration de contacts](migration-contacts/) | Déplace des contacts d'un outil à l'autre : champs mis en correspondance, données nettoyées, consentements relus, test à blanc et rapport d'écarts | Tables n8n |
+| [Agent WhatsApp : conversations et alertes](agent-whatsapp/) | Reçoit les échanges d'un agent WhatsApp, range chacun dans une table et vous alerte sur Telegram quand l'agent passe la main à une personne | Tables n8n, Telegram |
 
 ### Documents, IA et fiabilité
 
