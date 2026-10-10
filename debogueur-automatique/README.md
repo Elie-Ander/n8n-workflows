@@ -25,7 +25,9 @@ Testé sur des pannes provoquées : service indisponible, accès refusé, donné
 3. Créez la table n8n « Journal du débogueur » avec les colonnes quand, workflow, workflow_id, execution_id, etape, message, famille, origine, etat, action, cause, correction, analyse, confiance, verification, deja_vue, relance_id, duree_s, cle.
 4. Importez `workflow.json`, choisissez votre table et activez le workflow. Dans les réglages de chaque workflow à surveiller, choisissez-le comme « Error workflow ».
 
-À savoir : l'étape « Corriger sans attendre » appelle un second workflow, celui qui exécute ce que vous décidez depuis les boutons Telegram. Il n'est pas encore dans ce dossier. Sans lui, le débogueur diagnostique, relance et vous prévient. Les boutons, eux, n'agissent pas.
+5. Pour les boutons : importez aussi `decisions-telegram.workflow.json`. C'est lui qui exécute ce que vous décidez depuis Telegram (relancer, mettre en pause, publier une correction, l'annuler). Dans son étape « Lire la demande », indiquez votre identifiant de conversation Telegram, l'adresse de votre n8n et les workflows qu'il a le droit de corriger. Choisissez la même table, donnez-lui les mêmes identifiants Telegram et n8n API, puis activez-le. Dans le premier workflow, l'étape « Corriger sans attendre » doit pointer vers lui.
+
+À savoir : sans ce second workflow, le débogueur diagnostique, relance et vous prévient. Les boutons, eux, n'agissent pas.
 
 La clé et l'adresse e-mail des pannes d'essai sont fictives : elles servent à montrer le masquage.
 

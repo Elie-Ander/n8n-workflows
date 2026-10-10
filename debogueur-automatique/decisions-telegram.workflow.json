@@ -1,0 +1,1088 @@
+{
+  "name": "Débogueur : vous décidez depuis Telegram, il exécute (relancer, mettre en pause, corriger)",
+  "nodes": [
+    {
+      "id": "6c723281-8e0d-41a4-b5e4-a14fd933787a",
+      "name": "Quand un bouton est pressé",
+      "type": "n8n-nodes-base.telegramTrigger",
+      "typeVersion": 1.2,
+      "position": [
+        0,
+        -112
+      ],
+      "parameters": {
+        "updates": [
+          "callback_query"
+        ],
+        "additionalFields": {}
+      }
+    },
+    {
+      "id": "7fa0e777-be9f-45d4-a94c-94f1712d8dfd",
+      "name": "Lire la demande",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        224,
+        0
+      ],
+      "parameters": {
+        "jsCode": "// Deux entrées : un bouton pressé dans Telegram, ou le Débogueur automatique qui demande une correction pour un workflow inscrit.\nconst j = $input.first().json, q = j.callback_query || {};\n// Les conversations Telegram qui ont le droit de décider : votre identifiant de conversation.\nconst AUTORISES = ['VOTRE_IDENTIFIANT_TELEGRAM'];\n// Les seuls workflows que ce débogueur a le droit de corriger, et seulement après votre appui.\nconst CORRECTION_AUTORISEE = ['ID_DU_WORKFLOW'];\n// Parmi eux, ceux où il publie seul les nouvelles tentatives, sans attendre votre appui. Liste vide : tout reste sur validation.\nconst CORRECTION_AUTOMATIQUE = [];\nconst commun = { correction_autorisee: CORRECTION_AUTORISEE, correction_automatique: CORRECTION_AUTOMATIQUE, adresse_n8n: 'https://votre-instance-n8n' };\n// C'est le déclencheur qui dit d'où vient la demande, jamais un champ reçu : un message Telegram ne peut pas se faire passer pour le débogueur.\nlet demande = false; try { demande = $('Quand le débogueur demande une correction').isExecuted === true; } catch (e) {}\nif (demande) return [{ json: Object.assign({ valide: !!j.cle, automatique: true, action: { t: 'tentatives', d: 'delai' }[j.geste] || '', cle: String(j.cle || ''), requete: '', chat: AUTORISES[0] }, commun) }];\nconst m = /^dbg\\|([rpntda])\\|(.+)$/.exec(String(q.data || ''));\nconst chat = q.message && q.message.chat ? String(q.message.chat.id) : '';\nreturn [{ json: Object.assign({ valide: !!m && AUTORISES.indexOf(chat) >= 0, automatique: false, action: m ? { r: 'relancer', p: 'pause', n: 'rien', t: 'tentatives', d: 'delai', a: 'annuler' }[m[1]] : '', cle: m ? m[2] : '', requete: String(q.id || ''), chat: chat }, commun) }];"
+      }
+    },
+    {
+      "id": "2c5d83df-e607-4a6b-bcf5-01eefd083f94",
+      "name": "Répondre au bouton",
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1.2,
+      "position": [
+        672,
+        -96
+      ],
+      "onError": "continueRegularOutput",
+      "parameters": {
+        "resource": "callback",
+        "operation": "answerQuery",
+        "queryId": "={{ $json.requete }}",
+        "additionalFields": {
+          "text": "={{ $json.valide ? 'Demande reçue.' : 'Bouton non reconnu.' }}"
+        }
+      }
+    },
+    {
+      "id": "f647d38b-3813-4b4f-a8eb-49f3bb22bb61",
+      "name": "Retrouver la panne",
+      "type": "n8n-nodes-base.dataTable",
+      "typeVersion": 1.1,
+      "position": [
+        944,
+        0
+      ],
+      "executeOnce": true,
+      "alwaysOutputData": true,
+      "onError": "continueRegularOutput",
+      "parameters": {
+        "resource": "row",
+        "operation": "get",
+        "dataTableId": {
+          "__rl": true,
+          "mode": "list",
+          "value": "",
+          "cachedResultName": "Journal du débogueur"
+        },
+        "matchType": "allConditions",
+        "filters": {
+          "conditions": [
+            {
+              "keyName": "cle",
+              "condition": "eq",
+              "keyValue": "={{ $('Lire la demande').first().json.cle }}"
+            }
+          ]
+        },
+        "returnAll": false,
+        "limit": 1
+      }
+    },
+    {
+      "id": "0b44ab57-e638-42b7-8f00-bdc7c42b4d60",
+      "name": "Vérifier la demande",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1168,
+        0
+      ],
+      "parameters": {
+        "jsCode": "// La décision vient d'une personne, ou d'une règle pour un workflow inscrit. Le débogueur vérifie qu'elle a encore un sens, et qu'il a le droit de l'exécuter.\nconst d = $('Lire la demande').first().json, l = $input.first().json || {};\nconst memoire = $getWorkflowStaticData('global'), corrections = memoire.corrections || {}, annulees = memoire.annulees || {};\nconst correction = ['tentatives', 'delai', 'annuler'].indexOf(d.action) >= 0;\nlet refus = '';\nif (!d.valide) refus = 'Bouton non reconnu.';\nelse if (!l.cle) refus = 'Cette panne est introuvable dans le journal.';\nelse if (d.automatique && d.action !== 'tentatives') refus = 'Seules les nouvelles tentatives se publient sans validation.';\nelse if (l.etat === 'réparé' && (d.action === 'relancer' || d.action === 'pause')) refus = 'Cette panne est déjà réparée : rien à faire.';\nelse if (d.action === 'relancer' && !l.execution_id) refus = \"Pas d'exécution à relancer pour cette panne.\";\nelse if (correction && d.correction_autorisee.indexOf(String(l.workflow_id || '')) < 0) refus = \"Ce workflow n'est pas inscrit pour les corrections : je n'y touche pas.\";\nelse if (correction && d.action !== 'annuler' && ['service indisponible', 'trop de requêtes'].indexOf(l.famille) < 0) refus = 'Aucune correction simple ne correspond à cette panne.';\nelse if (d.automatique && d.correction_automatique.indexOf(String(l.workflow_id || '')) < 0) refus = \"Ce workflow n'est pas inscrit pour la correction automatique.\";\nelse if (d.automatique && l.etat !== 'réparé') refus = \"La relance n'a pas réparé la panne : pas de correction sans validation.\";\nelse if (d.automatique && annulees[l.workflow_id + '|' + l.etape]) refus = 'Une personne a annulé cette correction sur cette étape : elle ne se republie plus sans validation.';\nelse if (correction && d.action !== 'annuler' && corrections[d.cle]) refus = 'Cette correction est déjà publiée.';\nelse if (d.action === 'annuler' && !corrections[d.cle]) refus = 'Aucune correction à annuler pour cette panne.';\nreturn [{ json: Object.assign({}, d, { quoi: refus ? 'refus' : correction ? 'corriger' : d.action, geste: correction ? d.action : '', refus: refus, execution_id: l.execution_id || '', workflow_id: l.workflow_id || '', workflow: l.workflow || '', etape: l.etape || '', etat_avant: l.etat || '', relance_avant: l.relance_id || '', action_avant: l.action || '' }) }];"
+      }
+    },
+    {
+      "id": "5af63689-91f2-4623-a2a1-e91a2404d76a",
+      "name": "Quelle décision ?",
+      "type": "n8n-nodes-base.switch",
+      "typeVersion": 3.2,
+      "position": [
+        1440,
+        -16
+      ],
+      "parameters": {
+        "rules": {
+          "values": [
+            {
+              "outputKey": "relancer",
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict"
+                },
+                "conditions": [
+                  {
+                    "leftValue": "={{ $json.quoi }}",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals"
+                    },
+                    "rightValue": "relancer"
+                  }
+                ],
+                "combinator": "and"
+              }
+            },
+            {
+              "outputKey": "pause",
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict"
+                },
+                "conditions": [
+                  {
+                    "leftValue": "={{ $json.quoi }}",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals"
+                    },
+                    "rightValue": "pause"
+                  }
+                ],
+                "combinator": "and"
+              }
+            },
+            {
+              "outputKey": "corriger",
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict"
+                },
+                "conditions": [
+                  {
+                    "leftValue": "={{ $json.quoi }}",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals"
+                    },
+                    "rightValue": "corriger"
+                  }
+                ],
+                "combinator": "and"
+              }
+            }
+          ]
+        },
+        "options": {
+          "fallbackOutput": "extra",
+          "renameFallbackOutput": "rien"
+        }
+      }
+    },
+    {
+      "id": "2cb97131-484d-4e2e-a0c1-f80dd2b3bb07",
+      "name": "Relancer l'exécution dans n8n",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        1664,
+        -176
+      ],
+      "onError": "continueRegularOutput",
+      "alwaysOutputData": true,
+      "parameters": {
+        "method": "POST",
+        "url": "={{ $json.adresse_n8n }}/api/v1/executions/{{ $json.execution_id }}/retry",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "n8nApi",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "{ \"loadWorkflow\": true }",
+        "options": {
+          "timeout": 30000
+        }
+      }
+    },
+    {
+      "id": "0e4aa9c2-feea-4ea6-bb53-2cc23b8dcfdf",
+      "name": "Mettre le workflow en pause",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        1664,
+        16
+      ],
+      "onError": "continueRegularOutput",
+      "alwaysOutputData": true,
+      "parameters": {
+        "method": "POST",
+        "url": "={{ $json.adresse_n8n }}/api/v1/workflows/{{ $json.workflow_id }}/deactivate",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "n8nApi",
+        "options": {
+          "timeout": 15000
+        }
+      }
+    },
+    {
+      "id": "6e506f64-4dad-4963-a03c-392e3ae7df2a",
+      "name": "Conclure",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        3096,
+        0
+      ],
+      "parameters": {
+        "jsCode": "// Ce qui a été fait, dit simplement, puis noté au journal. Une correction n'est annoncée que si n8n la confirme à la relecture, qu'elle vienne d'un bouton ou d'une demande du débogueur.\nconst d = $('Vérifier la demande').first().json, r = $input.first().json || {};\nconst esc = t => String(t || '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');\nconst lu = n => { try { return $(n).isExecuted ? $(n).first().json : null; } catch (e) { return null; } };\nconst motif = e => String((e && (e.message || e.description)) || e || 'Raison inconnue.').slice(0, 300);\nlet action = '', etat = d.etat_avant, relance = d.relance_avant, texte = '', annulable = false;\nif (d.quoi === 'relancer') {\n  if (r.status === 'success' || r.finished === true) { etat = 'réparé'; relance = String(r.id || ''); action = 'relancé à la demande depuis Telegram, allé au bout' + (r.id ? ' (exécution ' + r.id + ')' : ''); texte = '🟢 <b>Relancé : « ' + esc(d.workflow) + ' » est allé au bout</b>' + (r.id ? '\\nExécution ' + r.id + '.' : ''); }\n  else if (r.error) { texte = '🟠 <b>Relance impossible</b>\\n' + esc(motif(r.error).slice(0, 200)); }\n  else { action = 'relancé à la demande depuis Telegram, la panne est toujours là'; texte = '🟠 <b>Relancé, mais la panne est toujours là</b>\\n« ' + esc(d.workflow) + ' » : la cause reste à corriger.'; }\n} else if (d.quoi === 'pause') {\n  if (r.active === false) { action = 'mis en pause à la demande depuis Telegram'; texte = '⏸ <b>« ' + esc(d.workflow) + ' » est en pause</b>\\nRien n\\'est supprimé. Republiez-le dans n8n quand la cause est corrigée.'; }\n  else texte = '🟠 <b>Mise en pause impossible</b>\\nn8n n\\'a pas confirmé l\\'arrêt.';\n} else if (d.quoi === 'corriger') {\n  const prep = lu('Préparer la correction') || {}, relu = lu('Relire le workflow'), memoire = $getWorkflowStaticData('global');\n  memoire.corrections = memoire.corrections || {}; memoire.annulees = memoire.annulees || {};\n  // Une publication automatique annulée par une personne ne se refait plus sans elle sur cette étape. Si elle publie la correction elle-même plus tard, la réserve tombe.\n  const cleEtape = d.workflow_id + '|' + prep.etape, seule = !!(memoire.corrections[d.cle] || {}).automatique;\n  const lire = (n, k) => { const v = k === 'timeout' ? (n.parameters && n.parameters.options ? n.parameters.options.timeout : undefined) : n[k]; return v === undefined ? null : v; };\n  const n = relu && Array.isArray(relu.nodes) ? relu.nodes.find(x => x.name === prep.etape) : null;\n  const pose = !!n && Object.keys(prep.apres || {}).every(k => lire(n, k) === prep.apres[k]);\n  const publie = !!relu && relu.active === true && (!relu.activeVersionId || relu.versionId === relu.activeVersionId);\n  const base = String(d.action_avant || '').split(/(?:^| · )correction (?:publiée|annulée)/)[0], suite = t => (base ? base + ' · ' : '') + t;\n  if (!prep.applicable) texte = '🟠 <b>Correction non appliquée</b>\\n' + esc(prep.pourquoi || 'Raison inconnue.');\n  else if (!relu) texte = '🟠 <b>n8n a refusé la correction</b>\\n' + esc(motif(r.error)) + '\\nLe workflow n\\'a pas changé.';\n  else if (pose && publie && d.geste === 'annuler') { delete memoire.corrections[d.cle]; if (seule) memoire.annulees[cleEtape] = new Date().toISOString(); action = suite('correction annulée depuis Telegram'); texte = '↩ <b>Correction annulée sur « ' + esc(d.workflow) + ' »</b>\\n' + esc(prep.fait) + '\\nVérifié dans n8n : c\\'est la version publiée.' + (seule ? '\\nSur cette étape, cette correction ne se publiera plus sans vous : la prochaine fois, elle vous sera proposée.' : ''); }\n  else if (pose && publie && d.automatique) { memoire.corrections[d.cle] = { workflow_id: d.workflow_id, etape: prep.etape, avant: prep.avant, quand: new Date().toISOString(), automatique: true }; annulable = true; action = suite('correction publiée automatiquement : ' + prep.fait); texte = '🛠 <b>Corrigé sans attendre : « ' + esc(d.workflow) + ' »</b>\\n' + esc(prep.fait) + '\\nVérifié dans n8n : la version publiée porte ce réglage. Pas d\\'accord ? Le bouton ci-dessous remet tout comme avant.'; }\n  else if (pose && publie) { memoire.corrections[d.cle] = { workflow_id: d.workflow_id, etape: prep.etape, avant: prep.avant, quand: new Date().toISOString() }; delete memoire.annulees[cleEtape]; annulable = true; action = suite('correction publiée depuis Telegram : ' + prep.fait); texte = '🛠 <b>Correction publiée sur « ' + esc(d.workflow) + ' »</b>\\n' + esc(prep.fait) + '\\nVérifié dans n8n : la version publiée porte ce réglage. Pour revenir en arrière, le bouton ci-dessous.'; }\n  else if (pose) texte = '🟠 <b>Correction enregistrée, publication non confirmée</b>\\nLe brouillon de « ' + esc(d.workflow) + ' » porte la correction, mais n8n n\\'a pas confirmé sa publication. Ouvrez le workflow dans n8n pour la publier ou l\\'abandonner.';\n  else texte = '🟠 <b>Correction non confirmée</b>\\nÀ la relecture, « ' + esc(d.workflow) + ' » ne porte pas le réglage attendu. Ouvrez le workflow dans n8n pour vérifier.';\n  for (const k of Object.keys(memoire.corrections)) if (Date.now() - Date.parse(memoire.corrections[k].quand) > 30 * 86400000) delete memoire.corrections[k];\n} else if (d.quoi === 'rien') { action = 'vu depuis Telegram, aucune action demandée'; texte = 'Noté : aucune action. La panne reste ouverte jusqu\\'à la prochaine exécution réussie.'; }\nelse texte = esc(d.refus);\nreturn [{ json: { cle: d.cle, chat: d.chat, noter: !!action, annulable: annulable, action: action.slice(0, 600), etat: etat, relance_id: relance, texte: texte } }];"
+      }
+    },
+    {
+      "id": "162298e5-44dd-47b4-ac96-afbbec0b6733",
+      "name": "À noter au journal ?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        3320,
+        0
+      ],
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 1
+          },
+          "conditions": [
+            {
+              "leftValue": "={{ $json.noter }}",
+              "rightValue": "",
+              "operator": {
+                "type": "boolean",
+                "operation": "true",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      }
+    },
+    {
+      "id": "7ac88b70-ef56-41f4-b754-b475b0e82337",
+      "name": "Mettre le journal à jour",
+      "type": "n8n-nodes-base.dataTable",
+      "typeVersion": 1.1,
+      "position": [
+        3544,
+        -112
+      ],
+      "retryOnFail": true,
+      "maxTries": 3,
+      "waitBetweenTries": 1000,
+      "onError": "continueRegularOutput",
+      "parameters": {
+        "resource": "row",
+        "operation": "upsert",
+        "dataTableId": {
+          "__rl": true,
+          "mode": "list",
+          "value": "",
+          "cachedResultName": "Journal du débogueur"
+        },
+        "matchType": "allConditions",
+        "filters": {
+          "conditions": [
+            {
+              "keyName": "cle",
+              "condition": "eq",
+              "keyValue": "={{ $json.cle }}"
+            }
+          ]
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "cle": "={{ $json.cle }}",
+            "action": "={{ $json.action }}",
+            "etat": "={{ $json.etat }}",
+            "relance_id": "={{ $json.relance_id }}"
+          },
+          "matchingColumns": [],
+          "schema": [
+            {
+              "id": "cle",
+              "displayName": "cle",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "action",
+              "displayName": "action",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "etat",
+              "displayName": "etat",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "relance_id",
+              "displayName": "relance_id",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            }
+          ]
+        },
+        "options": {}
+      }
+    },
+    {
+      "id": "98da2ba3-b21d-452b-8720-9bb5ed2164dd",
+      "name": "Dire ce qui a été fait",
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1.2,
+      "position": [
+        4264,
+        -16
+      ],
+      "retryOnFail": true,
+      "maxTries": 3,
+      "waitBetweenTries": 2000,
+      "onError": "continueRegularOutput",
+      "parameters": {
+        "chatId": "={{ $('Conclure').first().json.chat }}",
+        "text": "={{ $('Conclure').first().json.texte }}",
+        "additionalFields": {
+          "appendAttribution": false,
+          "parse_mode": "HTML",
+          "disable_notification": true
+        }
+      }
+    },
+    {
+      "id": "f331d95a-7195-4651-8d4c-60ffb6c0ba36",
+      "name": "Présentation",
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        -704,
+        -320
+      ],
+      "parameters": {
+        "content": "## Débogueur : vous décidez, il exécute\nPar **Elie LISSODA**, automatisation marketing · [elie.koudujob.com](https://elie.koudujob.com)\n\nUne panne passagère se relance toute seule. Pour les autres, laisser une IA décider serait risqué : une mauvaise correction est pire qu'une panne. Ce workflow reçoit vos décisions depuis Telegram, trois boutons sous l'alerte du Débogueur automatique, et les exécute dans n8n : relancer, mettre en pause, ou ne rien faire. Pour une panne passagère, il peut aussi publier une correction simple, activer les nouvelles tentatives ou allonger un délai d'attente : après votre appui, et un bouton permet d'annuler. Sur les workflows que vous inscrivez pour cela, les nouvelles tentatives partent sans attendre : vous êtes prévenu, et le même bouton annule.\n\nPour le lancer : connectez Telegram et une clé API n8n, mettez dans le premier nœud Code votre identifiant de conversation et les deux listes de workflows, ceux qu'il corrige sur validation et ceux qu'il corrige sans attendre, puis publiez. Il va avec le Débogueur automatique.\n\nUne question ? Je suis disponible sur [elie.koudujob.com](https://elie.koudujob.com) 😉",
+        "width": 600,
+        "height": 620,
+        "color": 2
+      }
+    },
+    {
+      "id": "1d397913-e85c-44dd-b5d2-cb3692c67220",
+      "name": "Sticky Note recevoir",
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        -64,
+        -320
+      ],
+      "parameters": {
+        "content": "## 1. Recevoir la décision\nUn bouton pressé sous une alerte arrive ici. Seule la conversation autorisée est suivie, et Telegram reçoit tout de suite un accusé. Seconde entrée : le Débogueur automatique, quand il demande une correction pour un workflow inscrit. C'est le déclencheur qui dit d'où vient la demande, jamais un champ reçu.",
+        "width": 944,
+        "height": 520,
+        "color": 7
+      }
+    },
+    {
+      "id": "7621ba2b-2ab0-4dc6-a73a-827b4f18e2c3",
+      "name": "Sticky Note verifier",
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        896,
+        -320
+      ],
+      "parameters": {
+        "content": "## 2. Vérifier qu'elle a un sens\nLa panne est relue dans le journal. Déjà réparée, introuvable, rien à relancer : la demande est refusée poliment.",
+        "width": 440,
+        "height": 520,
+        "color": 5
+      }
+    },
+    {
+      "id": "d6d3c7ae-88ea-4a95-af37-6b6b10f0ed92",
+      "name": "Sticky Note executer",
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        1352,
+        -320
+      ],
+      "parameters": {
+        "content": "## 3. Exécuter\nRelancer l'exécution en panne, ou dépublier le workflow, par l'API de n8n. Le débogueur exécute ce qu'une personne a décidé, rien de plus.",
+        "width": 1640,
+        "height": 520,
+        "color": 4
+      }
+    },
+    {
+      "id": "bfda716f-59a5-440e-aa75-adb76994dfc1",
+      "name": "Lire le workflow à corriger",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        1664,
+        408
+      ],
+      "onError": "continueRegularOutput",
+      "alwaysOutputData": true,
+      "parameters": {
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "n8nApi",
+        "options": {
+          "timeout": 20000
+        },
+        "method": "GET",
+        "url": "={{ $json.adresse_n8n }}/api/v1/workflows/{{ $json.workflow_id }}"
+      }
+    },
+    {
+      "id": "f9b1fc7b-9121-4251-84e1-81a2984a9334",
+      "name": "Préparer la correction",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1888,
+        408
+      ],
+      "parameters": {
+        "jsCode": "// Deux corrections seulement, choisies par une règle écrite, jamais par l'IA. Un seul réglage change, sur une seule étape : tout le reste repart tel qu'il a été lu.\nconst d = $('Vérifier la demande').first().json, w = $input.first().json || {};\nconst corrections = $getWorkflowStaticData('global').corrections || {};\nconst refuser = pourquoi => [{ json: { applicable: false, pourquoi: pourquoi } }];\nif (!Array.isArray(w.nodes)) return refuser(\"n8n n'a pas renvoyé le workflow\" + (w.error ? ' : ' + String(w.error.message || w.error.description || w.error).slice(0, 160) : '.'));\nif (w.active !== true) return refuser('Ce workflow est en pause : je ne le republie pas à votre place.');\nif (w.activeVersionId && w.versionId !== w.activeVersionId) return refuser(\"Ce workflow a des modifications non publiées : je n'y touche pas. Publiez-les ou abandonnez-les d'abord.\");\nconst REGLAGES = ['retryOnFail', 'maxTries', 'waitBetweenTries', 'timeout'];\nconst lire = (n, k) => { const v = k === 'timeout' ? (n.parameters && n.parameters.options ? n.parameters.options.timeout : undefined) : n[k]; return v === undefined ? null : v; };\nconst poser = (n, k, v) => {\n  if (k === 'timeout') { n.parameters = n.parameters || {}; n.parameters.options = n.parameters.options || {}; if (v === null) delete n.parameters.options.timeout; else n.parameters.options.timeout = v; }\n  else if (v === null) delete n[k]; else n[k] = v;\n};\nconst secondes = ms => Math.round(ms / 1000) + ' s';\nconst ancienne = d.geste === 'annuler' ? corrections[d.cle] : null;\nconst etape = ancienne ? ancienne.etape : d.etape;\nconst n = w.nodes.find(x => x.name === etape);\nif (!n) return refuser(\"L'étape « \" + etape + \" » n'existe plus dans le workflow.\");\nlet apres = {}, fait = '';\nif (d.geste === 'annuler') {\n  REGLAGES.forEach(k => { if (k in ancienne.avant) apres[k] = ancienne.avant[k]; });\n  fait = \"L'étape « \" + etape + \" » a retrouvé ses réglages d'avant.\";\n} else if (d.geste === 'tentatives') {\n  if (n.retryOnFail === true) return refuser('Les nouvelles tentatives sont déjà activées sur cette étape.');\n  apres = { retryOnFail: true, maxTries: 3, waitBetweenTries: 5000 };\n  fait = \"Nouvelles tentatives activées sur l'étape « \" + etape + \" » : 3 essais, 5 secondes entre deux.\";\n} else if (d.geste === 'delai') {\n  const actuel = Number(lire(n, 'timeout'));\n  if (!/httpRequest$/.test(String(n.type)) || !(actuel > 0)) return refuser(\"Cette étape n'a pas de délai d'attente réglé : rien à allonger.\");\n  if (actuel >= 120000) return refuser(\"Le délai d'attente est déjà de \" + secondes(actuel) + ' : je ne vais pas plus loin.');\n  apres = { timeout: Math.min(actuel * 2, 120000) };\n  fait = \"Délai d'attente de l'étape « \" + etape + \" » passé de \" + secondes(actuel) + ' à ' + secondes(apres.timeout) + '.';\n} else return refuser('Correction inconnue.');\nconst avant = {};\nObject.keys(apres).forEach(k => { avant[k] = lire(n, k); poser(n, k, apres[k]); });\n// L'API de n8n n'accepte que ces réglages de workflow : les autres sont à lui, il les garde.\nconst PERMIS = ['saveExecutionProgress', 'saveManualExecutions', 'saveDataErrorExecution', 'saveDataSuccessExecution', 'executionTimeout', 'errorWorkflow', 'timezone', 'executionOrder', 'callerPolicy', 'callerIds', 'timeSavedPerExecution', 'availableInMCP'];\nconst settings = {};\nObject.keys(w.settings || {}).forEach(k => { if (PERMIS.indexOf(k) >= 0) settings[k] = w.settings[k]; });\nreturn [{ json: { applicable: true, etape: etape, fait: fait, avant: avant, apres: apres, adresse_n8n: d.adresse_n8n, workflow_id: d.workflow_id, corps: { name: w.name, nodes: w.nodes, connections: w.connections, settings: settings } } }];"
+      }
+    },
+    {
+      "id": "6efa27dd-32b2-4393-9bc0-d395e26ac9f5",
+      "name": "Correction applicable ?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        2112,
+        408
+      ],
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 1
+          },
+          "conditions": [
+            {
+              "leftValue": "={{ $json.applicable }}",
+              "rightValue": "",
+              "operator": {
+                "type": "boolean",
+                "operation": "true",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      }
+    },
+    {
+      "id": "52c83305-4002-4176-a331-3de7d08ae14c",
+      "name": "Enregistrer la correction",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        2336,
+        408
+      ],
+      "onError": "continueErrorOutput",
+      "alwaysOutputData": false,
+      "parameters": {
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "n8nApi",
+        "options": {
+          "timeout": 20000
+        },
+        "method": "PUT",
+        "url": "={{ $json.adresse_n8n }}/api/v1/workflows/{{ $json.workflow_id }}",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify($json.corps) }}"
+      }
+    },
+    {
+      "id": "e94d70d9-5a8a-4a7d-b9ca-b6226976c6bc",
+      "name": "Publier la correction",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        2560,
+        408
+      ],
+      "onError": "continueRegularOutput",
+      "alwaysOutputData": true,
+      "parameters": {
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "n8nApi",
+        "options": {
+          "timeout": 20000
+        },
+        "method": "POST",
+        "url": "={{ $('Préparer la correction').first().json.adresse_n8n }}/api/v1/workflows/{{ $('Préparer la correction').first().json.workflow_id }}/activate",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({ versionId: $json.versionId, name: $('Vérifier la demande').first().json.automatique ? 'Correction automatique du débogueur' : 'Correction validée sur Telegram', description: $('Préparer la correction').first().json.fait }) }}"
+      }
+    },
+    {
+      "id": "25c0df0b-6acc-40e7-8671-943e8ba04bd6",
+      "name": "Relire le workflow",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        2784,
+        408
+      ],
+      "onError": "continueRegularOutput",
+      "alwaysOutputData": true,
+      "parameters": {
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "n8nApi",
+        "options": {
+          "timeout": 20000
+        },
+        "method": "GET",
+        "url": "={{ $('Préparer la correction').first().json.adresse_n8n }}/api/v1/workflows/{{ $('Préparer la correction').first().json.workflow_id }}"
+      }
+    },
+    {
+      "id": "e7ba1349-4345-49ec-adf1-92f4136eeb51",
+      "name": "Correction publiée ?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        3784,
+        0
+      ],
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 1
+          },
+          "conditions": [
+            {
+              "leftValue": "={{ $('Conclure').first().json.annulable }}",
+              "rightValue": "",
+              "operator": {
+                "type": "boolean",
+                "operation": "true",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      }
+    },
+    {
+      "id": "930e5830-c299-4ca7-bdff-86bad8dd5d48",
+      "name": "Dire que la correction est publiée",
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1.2,
+      "position": [
+        4024,
+        -128
+      ],
+      "retryOnFail": true,
+      "maxTries": 3,
+      "waitBetweenTries": 2000,
+      "onError": "continueRegularOutput",
+      "parameters": {
+        "chatId": "={{ $('Conclure').first().json.chat }}",
+        "text": "={{ $('Conclure').first().json.texte }}",
+        "additionalFields": {
+          "appendAttribution": false,
+          "parse_mode": "HTML",
+          "disable_notification": true
+        },
+        "replyMarkup": "inlineKeyboard",
+        "inlineKeyboard": {
+          "rows": [
+            {
+              "row": {
+                "buttons": [
+                  {
+                    "text": "Annuler la correction",
+                    "additionalFields": {
+                      "callback_data": "={{ 'dbg|a|' + $('Conclure').first().json.cle }}"
+                    }
+                  }
+                ]
+              }
+            }
+          ]
+        }
+      }
+    },
+    {
+      "id": "a5cdfeaa-4200-4622-b864-255604c29f38",
+      "name": "Sticky Note corriger",
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        1592,
+        232
+      ],
+      "parameters": {
+        "content": "## 4. Corriger\nDeux corrections seulement, choisies par une règle écrite : activer les nouvelles tentatives, ou allonger un délai d'attente. Sur votre appui, ou sans attendre pour les nouvelles tentatives d'un workflow inscrit. Jamais sur un workflow en pause, ni sur un workflow qui a des modifications non publiées. Après publication, le workflow est relu : la correction n'est annoncée que si n8n la confirme.",
+        "width": 1400,
+        "height": 340,
+        "color": 6
+      }
+    },
+    {
+      "id": "687e5d00-db90-46f1-94c6-c6f3808d8a2d",
+      "name": "Sticky Note repondre",
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        3024,
+        -320
+      ],
+      "parameters": {
+        "content": "## 5. Noter, répondre\nLe journal garde la trace de ce qui a été fait, et un message dit ce qui s'est vraiment passé. Après une correction, il porte un bouton pour revenir en arrière : si vous annulez ce qu'il a publié seul, il ne le refera plus sans vous sur cette étape. Quand c'est le débogueur qui a demandé, il reçoit le résultat, publiée ou non.",
+        "width": 1700,
+        "height": 520,
+        "color": 3
+      }
+    },
+    {
+      "id": "07fce164-faaa-47bb-ba0f-fd736ca64494",
+      "name": "Quand le débogueur demande une correction",
+      "type": "n8n-nodes-base.executeWorkflowTrigger",
+      "typeVersion": 1.1,
+      "position": [
+        0,
+        64
+      ],
+      "parameters": {
+        "inputSource": "passthrough"
+      }
+    },
+    {
+      "id": "5e2069e7-9f77-4dc4-a991-cbc6e2d394a9",
+      "name": "Un bouton a été pressé ?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        448,
+        0
+      ],
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 1
+          },
+          "conditions": [
+            {
+              "leftValue": "={{ !$json.automatique }}",
+              "rightValue": "",
+              "operator": {
+                "type": "boolean",
+                "operation": "true",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      }
+    },
+    {
+      "id": "f60cf089-66e2-4bfe-9d5c-4254a180310a",
+      "name": "Faut-il répondre ?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        4024,
+        80
+      ],
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 1
+          },
+          "conditions": [
+            {
+              "leftValue": "={{ !$('Vérifier la demande').first().json.automatique }}",
+              "rightValue": "",
+              "operator": {
+                "type": "boolean",
+                "operation": "true",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      }
+    },
+    {
+      "id": "7b5ffd5d-98b8-4c9e-8d68-c85ba38ee728",
+      "name": "Rendre le résultat",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        4504,
+        80
+      ],
+      "parameters": {
+        "jsCode": "// Ce que reçoit le Débogueur automatique quand c'est lui qui a demandé la correction : publiée, ou non. Si elle ne l'est pas, il la proposera avec un bouton.\nconst c = $('Conclure').first().json;\nreturn [{ json: { publie: c.annulable === true, texte: c.texte } }];"
+      }
+    }
+  ],
+  "connections": {
+    "Quand un bouton est pressé": {
+      "main": [
+        [
+          {
+            "node": "Lire la demande",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Lire la demande": {
+      "main": [
+        [
+          {
+            "node": "Un bouton a été pressé ?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Répondre au bouton": {
+      "main": [
+        [
+          {
+            "node": "Retrouver la panne",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Retrouver la panne": {
+      "main": [
+        [
+          {
+            "node": "Vérifier la demande",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Vérifier la demande": {
+      "main": [
+        [
+          {
+            "node": "Quelle décision ?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Quelle décision ?": {
+      "main": [
+        [
+          {
+            "node": "Relancer l'exécution dans n8n",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Mettre le workflow en pause",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Lire le workflow à corriger",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Conclure",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Relancer l'exécution dans n8n": {
+      "main": [
+        [
+          {
+            "node": "Conclure",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Mettre le workflow en pause": {
+      "main": [
+        [
+          {
+            "node": "Conclure",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Conclure": {
+      "main": [
+        [
+          {
+            "node": "À noter au journal ?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "À noter au journal ?": {
+      "main": [
+        [
+          {
+            "node": "Mettre le journal à jour",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Correction publiée ?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Mettre le journal à jour": {
+      "main": [
+        [
+          {
+            "node": "Correction publiée ?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Lire le workflow à corriger": {
+      "main": [
+        [
+          {
+            "node": "Préparer la correction",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Préparer la correction": {
+      "main": [
+        [
+          {
+            "node": "Correction applicable ?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Correction applicable ?": {
+      "main": [
+        [
+          {
+            "node": "Enregistrer la correction",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Conclure",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Enregistrer la correction": {
+      "main": [
+        [
+          {
+            "node": "Publier la correction",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Conclure",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Publier la correction": {
+      "main": [
+        [
+          {
+            "node": "Relire le workflow",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Relire le workflow": {
+      "main": [
+        [
+          {
+            "node": "Conclure",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Correction publiée ?": {
+      "main": [
+        [
+          {
+            "node": "Dire que la correction est publiée",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Faut-il répondre ?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Quand le débogueur demande une correction": {
+      "main": [
+        [
+          {
+            "node": "Lire la demande",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Un bouton a été pressé ?": {
+      "main": [
+        [
+          {
+            "node": "Répondre au bouton",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Retrouver la panne",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Dire que la correction est publiée": {
+      "main": [
+        [
+          {
+            "node": "Rendre le résultat",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Faut-il répondre ?": {
+      "main": [
+        [
+          {
+            "node": "Dire ce qui a été fait",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Rendre le résultat",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1"
+  }
+}
