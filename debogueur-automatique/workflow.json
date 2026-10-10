@@ -1,0 +1,1960 @@
+{
+  "name": "Débogueur automatique : il diagnostique et relance les workflows en panne",
+  "nodes": [
+    {
+      "parameters": {},
+      "id": "4870c9a0-f455-406f-baef-133d5b98e39d",
+      "name": "Quand un workflow tombe en panne",
+      "type": "n8n-nodes-base.errorTrigger",
+      "typeVersion": 1,
+      "position": [
+        0,
+        0
+      ]
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "r1",
+              "name": "max_relances",
+              "value": 1,
+              "type": "number"
+            },
+            {
+              "id": "r5",
+              "name": "relance_autorisee",
+              "value": "",
+              "type": "string"
+            },
+            {
+              "id": "b532e370-c77a-4a57-ac98-28293a1deb6c",
+              "name": "correction_autorisee",
+              "value": "",
+              "type": "string"
+            },
+            {
+              "id": "ae7693a1-311c-410b-8320-565d93a1cf65",
+              "name": "correction_automatique",
+              "value": "",
+              "type": "string"
+            },
+            {
+              "id": "r6",
+              "name": "importance",
+              "value": "{\"QSUIg6DPbohSrQ2z\":\"critique\"}",
+              "type": "string"
+            },
+            {
+              "id": "r4",
+              "name": "rappel_minutes",
+              "value": 60,
+              "type": "number"
+            },
+            {
+              "id": "r2",
+              "name": "telegram_chat_id",
+              "value": "",
+              "type": "string"
+            },
+            {
+              "id": "r3",
+              "name": "adresse_n8n",
+              "value": "https://votre-instance-n8n",
+              "type": "string"
+            }
+          ]
+        },
+        "includeOtherFields": true,
+        "options": {}
+      },
+      "id": "d7557f0b-6b8f-40c1-98f2-8e2aa1de634e",
+      "name": "Réglages",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        240,
+        128
+      ]
+    },
+    {
+      "parameters": {
+        "authentication": "n8nUserAuth",
+        "formTitle": "Débogueur automatique",
+        "formDescription": "Choisissez une panne d'essai : le débogueur la traite comme une vraie. Sur une vraie panne, il se lance tout seul.",
+        "formFields": {
+          "values": [
+            {
+              "fieldLabel": "Workflow à examiner",
+              "fieldName": "workflow",
+              "defaultValue": "Veille concurrentielle",
+              "requiredField": true
+            },
+            {
+              "fieldLabel": "Panne d'essai",
+              "fieldType": "dropdown",
+              "fieldName": "panne",
+              "fieldOptions": {
+                "values": [
+                  {
+                    "option": "Service indisponible (503)"
+                  },
+                  {
+                    "option": "Trop de requêtes (429)"
+                  },
+                  {
+                    "option": "Page introuvable (404)"
+                  },
+                  {
+                    "option": "Accès refusé (401)"
+                  },
+                  {
+                    "option": "Donnée manquante"
+                  }
+                ]
+              },
+              "requiredField": true
+            }
+          ]
+        },
+        "responseMode": "lastNode",
+        "options": {
+          "appendAttribution": false,
+          "buttonLabel": "Lancer le diagnostic"
+        }
+      },
+      "id": "a5852e7d-2bc2-4665-88f8-8c7a8c4cca2d",
+      "name": "Diagnostic à la demande",
+      "type": "n8n-nodes-base.formTrigger",
+      "typeVersion": 2.6,
+      "position": [
+        0,
+        240
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "// Deux entrées possibles : une vraie panne (le déclencheur d'erreur de n8n) ou un essai à la demande (le formulaire).\nconst j = $input.first().json;\nconst texte = v => (v === undefined || v === null) ? '' : String(v);\nconst ESSAIS = {\n  'Service indisponible (503)': { etape: 'Appeler le service de tarifs', message: 'Service unavailable - try again later or consider setting this node to retry automatically (in the node settings)', detail: '503 Service Unavailable' },\n  'Trop de requêtes (429)': { etape: \"Interroger l'assistant\", message: 'The service is receiving too many requests from you', detail: '429 Too Many Requests: rate limit exceeded, retry in 20s' },\n  'Page introuvable (404)': { etape: 'Lire la page des tarifs', message: 'The resource you are requesting could not be found', detail: '404 Not Found: https://exemple-concurrent.fr/tarifs-2025?ref=veille&token=abc123def456ghi789jkl012' },\n  'Accès refusé (401)': { etape: 'Écrire dans le CRM', message: 'Authorization failed - please check your credentials', detail: '401 Unauthorized: invalid api key tok_exemple_fictif_01 for contact jean.dupont@exemple.fr' },\n  'Donnée manquante': { etape: 'Lire la réponse', message: \"Cannot read properties of undefined (reading 'content')\", detail: 'TypeError dans le nœud Code, ligne 12' }\n};\nlet p, reglages = { noeud_type: '', noeud_relance: false, noeud_delai: 0 };\nif (j.execution && j.workflow) {\n  const e = j.execution, err = e.error || {}, noeud = err.node || {};\n  // De l'étape en panne on ne garde que trois réglages, jamais ses paramètres : ils peuvent porter une adresse ou un secret.\n  reglages = { noeud_type: texte(noeud.type), noeud_relance: noeud.retryOnFail === true, noeud_delai: Number(noeud.parameters && noeud.parameters.options && noeud.parameters.options.timeout) || 0 };\n  p = { origine: 'panne réelle', workflow_id: texte(j.workflow.id), workflow: texte(j.workflow.name) || 'Workflow sans nom', execution_id: texte(e.id), execution_url: texte(e.url), etape: texte(e.lastNodeExecuted) || texte(err.node && err.node.name) || 'étape inconnue', message: texte(err.message) || 'Erreur sans message', detail: (texte(err.description).indexOf(texte(err.httpCode)) === 0 ? texte(err.description) : [texte(err.httpCode), texte(err.description)].filter(Boolean).join(' ')), pile: texte(err.stack), deja_relance: !!e.retryOf };\n} else if (j.trigger && j.workflow) {\n  const err = j.trigger.error || {}, cause = err.cause || {};\n  p = { origine: 'panne réelle', workflow_id: texte(j.workflow.id), workflow: texte(j.workflow.name) || 'Workflow sans nom', execution_id: '', execution_url: '', etape: texte(err.node && err.node.name) || 'le déclencheur', message: texte(err.message) || texte(cause.message) || 'Le déclencheur a échoué', detail: texte(cause.message), pile: texte(cause.stack), deja_relance: false };\n} else {\n  const e = ESSAIS[texte(j.panne)] || ESSAIS['Service indisponible (503)'];\n  p = Object.assign({ origine: 'essai à la demande', workflow_id: '', workflow: texte(j.workflow).trim() || \"Workflow d'essai\", execution_id: '', execution_url: '', pile: '', deja_relance: false }, e);\n}\np.soi_meme = !!p.workflow_id && p.workflow_id === texte($workflow.id);\np.quand = new Date().toISOString();\np.max_relances = Number(j.max_relances) > 0 ? Number(j.max_relances) : 1;\np.telegram_chat_id = texte(j.telegram_chat_id);\np.adresse_n8n = texte(j.adresse_n8n).replace(/\\/+$/, '');\np.rappel_minutes = Number(j.rappel_minutes) > 0 ? Number(j.rappel_minutes) : 60;\n// Relance automatique : seulement pour les workflows inscrits dans Réglages. Relancer un envoi ou un paiement pourrait le faire partir deux fois.\np.relance_autorisee = !!p.workflow_id && texte(j.relance_autorisee).split(',').map(x => x.trim()).indexOf(p.workflow_id) >= 0;\n// Correction sur validation : seulement pour les workflows inscrits dans Réglages. Le débogueur prépare, une personne publie d'un bouton.\np.correction_autorisee = !!p.workflow_id && texte(j.correction_autorisee).split(',').map(x => x.trim()).indexOf(p.workflow_id) >= 0;\n// Correction automatique : parmi eux, les workflows où les nouvelles tentatives se publient sans attendre. Une personne peut toujours annuler.\np.correction_automatique = p.correction_autorisee && texte(j.correction_automatique).split(',').map(x => x.trim()).indexOf(p.workflow_id) >= 0;\nObject.assign(p, reglages);\nlet importances = {}; try { importances = JSON.parse(texte(j.importance) || '{}'); } catch (e) {}\np.importance = ['critique', 'important', 'confort'].indexOf(importances[p.workflow_id]) >= 0 ? importances[p.workflow_id] : 'important';\np.cle = p.quand + '|' + (p.execution_id || Math.random().toString(36).slice(2, 10));\nreturn [{ json: p }];"
+      },
+      "id": "9a4854ce-73c7-49d0-8291-33a7f7c2a56d",
+      "name": "Comprendre la panne",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        480,
+        128
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "// Confidentialité : aucun secret, aucune adresse e-mail ne part vers l'IA ni vers Telegram.\nconst p = Object.assign({}, $input.first().json);\nlet n = 0;\nconst masquer = t => String(t || '')\n  .replace(/[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\\.[A-Za-z]{2,}/g, () => { n++; return '[e-mail masqué]'; })\n  .replace(/\\b(Bearer|Basic)\\s+[A-Za-z0-9._~+\\/=-]{8,}/gi, (m, a) => { n++; return a + ' [secret masqué]'; })\n  .replace(/\\b(?:sk|pk|rk|xox[abp]|ghp|gho|key|tok)[-_][A-Za-z0-9_-]{10,}/gi, () => { n++; return '[clé masquée]'; })\n  .replace(/([?&](?:token|key|apikey|api_key|access_token|secret|password|pwd|signature|sig)=)[^&\\s\"']+/gi, (m, a) => { n++; return a + '[masqué]'; })\n  .replace(/\\b[A-Fa-f0-9]{32,}\\b/g, () => { n++; return '[identifiant masqué]'; })\n  .replace(/(https?:\\/\\/[^\\s\"'?]+)\\?[^\\s\"']*/g, (m, a) => a + '?[paramètres masqués]');\np.message = masquer(p.message).slice(0, 400);\np.detail = masquer(p.detail).slice(0, 600);\np.pile = masquer(p.pile).slice(0, 800);\np.secrets_masques = n;\nreturn [{ json: p }];\n"
+      },
+      "id": "d7893c83-ffd5-41bb-9875-cca853c63416",
+      "name": "Masquer les secrets",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        704,
+        128
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "// Qualité : la famille de la panne se décide par des règles écrites, pas par l'IA. C'est elle qui dit si une relance a un sens.\nconst p = Object.assign({}, $input.first().json);\nconst t = (p.message + ' ' + p.detail).toLowerCase();\nconst REGLES = [\n  { famille: 'trop de requêtes', relancable: true, test: /\\b429\\b|too many requests|rate.?limit|quota/, cause: \"Le service appelé limite le nombre de demandes : le workflow en a envoyé trop, trop vite.\", correction: [\"Attendre une minute, puis relancer l'exécution.\", \"Espacer les appels : option « Batching » du nœud, ou un nœud « Wait » entre deux appels.\", \"Activer « Retry On Fail » sur le nœud, avec quelques secondes d'attente.\"] },\n  { famille: 'service indisponible', relancable: true, test: /\\b50[0234]\\b|bad gateway|service unavailable|not able to process your request|internal server error|gateway time|etimedout|econnreset|econnrefused|socket hang up|timed? ?out/, cause: \"Le service appelé n'a pas répondu à temps. C'est en général passager.\", correction: [\"Relancer l'exécution.\", \"Activer « Retry On Fail » sur le nœud : 3 essais, 5 secondes d'attente.\", \"Si la panne dure, vérifier la page d'état du service.\"] },\n  { famille: 'accès refusé', relancable: false, test: /\\b40[13]\\b|unauthori|forbidden|invalid api key|authentication|authorization|credential|token (is )?expired|permission/, cause: \"Le service a refusé l'accès : la clé ou la connexion n'est plus valable, ou n'a pas le droit demandé.\", correction: [\"Ouvrir la connexion (credential) du nœud et la renouveler.\", \"Vérifier que la clé a bien le droit de faire cette action.\", \"Relancer l'exécution une fois la connexion réparée.\"] },\n  { famille: 'adresse introuvable', relancable: false, test: /\\b404\\b|not found|could not be found|enotfound|getaddrinfo|no such/, cause: \"L'adresse appelée n'existe plus : la page ou la ressource a été déplacée ou supprimée.\", correction: [\"Vérifier l'adresse dans le nœud et la mettre à jour.\", \"Si la liste d'adresses vient d'un fichier ou d'une table, corriger la ligne en cause.\", \"Régler le nœud sur « On Error : Continue » pour que les autres éléments passent quand même.\"] },\n  { famille: 'donnée inattendue', relancable: false, test: /cannot read propert|undefined|is not iterable|unexpected token|json|is not a function|invalid syntax|\\bnan\\b/, cause: \"Le workflow a reçu une donnée d'une forme imprévue : un champ attendu est absent ou a changé de nom.\", correction: [\"Ouvrir l'exécution et regarder ce que le nœud précédent a vraiment envoyé.\", \"Adapter le nœud au nouveau format, ou prévoir une valeur par défaut.\", \"Ajouter un contrôle avant : si le champ manque, sortir par une autre branche.\"] },\n  { famille: 'réglage du nœud', relancable: false, test: /\\b400\\b|bad request|missing|required|parameter|must be|invalid value|not valid/, cause: \"Le nœud est mal réglé pour ce cas : une valeur obligatoire manque ou n'a pas la bonne forme.\", correction: [\"Relire le message d'erreur : il nomme souvent le champ en cause.\", \"Corriger le réglage du nœud, puis tester avec le même élément.\"] }\n];\nconst r = REGLES.find(x => x.test.test(t)) || { famille: 'panne non reconnue', relancable: false, cause: \"La panne ne correspond à aucune règle connue.\", correction: [\"Ouvrir l'exécution en erreur et lire le message complet.\", \"Tester le nœud seul, avec le même élément.\"] };\nconst code = (t.match(/\\b([45]\\d\\d)\\b/) || [])[1] || '';\nreturn [{ json: Object.assign(p, { famille: r.famille, relancable: r.relancable, code_http: code, cause_regle: r.cause, correction_regle: r.correction }) }];\n"
+      },
+      "id": "171df005-40d4-4afa-bda8-9e63fe0c7e10",
+      "name": "Classer la panne",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        928,
+        128
+      ]
+    },
+    {
+      "parameters": {
+        "operation": "get",
+        "dataTableId": {
+          "__rl": true,
+          "mode": "list",
+          "value": "",
+          "cachedResultName": "Journal du débogueur"
+        },
+        "matchType": "allConditions",
+        "filters": {
+          "conditions": [
+            {
+              "keyName": "workflow",
+              "keyValue": "={{ $json.workflow }}"
+            },
+            {
+              "keyName": "etape",
+              "keyValue": "={{ $json.etape }}"
+            }
+          ]
+        },
+        "returnAll": true
+      },
+      "id": "b9adac82-3482-489b-88a6-d3c906218a2f",
+      "name": "Chercher dans la mémoire",
+      "type": "n8n-nodes-base.dataTable",
+      "typeVersion": 1.1,
+      "position": [
+        1168,
+        128
+      ],
+      "alwaysOutputData": true,
+      "retryOnFail": true,
+      "maxTries": 3,
+      "waitBetweenTries": 1000,
+      "onError": "continueRegularOutput"
+    },
+    {
+      "parameters": {
+        "jsCode": "// Mémoire : la même panne a-t-elle déjà été vue ? Une exécution ne se relance qu'une fois. Et une panne déjà signalée ne redéclenche pas d'alerte avant le délai de rappel.\nconst p = Object.assign({}, $('Classer la panne').first().json);\nconst lignes = $input.all().map(i => i.json).filter(r => r && r.workflow === p.workflow && r.etape === p.etape);\nconst jour = Date.now() - 24 * 3600 * 1000, heure = Date.now() - 3600 * 1000;\nconst recentes = lignes.filter(r => Date.parse(r.quand) > jour);\nconst sansEffet = recentes.filter(r => Date.parse(r.quand) > heure && /toujours là|la panne dure/.test(String(r.action))).length;\nconst signalee = recentes.filter(r => r.famille === p.famille && /^(à corriger|à surveiller)$/.test(String(r.etat)) && Date.now() - Date.parse(r.quand) < p.rappel_minutes * 60000).sort((a, b) => Date.parse(b.quand) - Date.parse(a.quand))[0];\nconst hm = t => { try { return new Date(t).toLocaleTimeString('fr-FR', { timeZone: 'Europe/Paris', hour: '2-digit', minute: '2-digit' }); } catch (e) { return new Date(t).toISOString().slice(11, 16) + ' UTC'; } };\nconst esc = t => String(t || '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');\np.deja_vue = recentes.length;\nlet action, raison;\nif (p.soi_meme) { action = 'ignorer'; raison = \"C'est le débogueur lui-même : il ne se répare pas tout seul.\"; }\nelse if (p.origine !== 'panne réelle') { action = 'proposer'; raison = p.relancable ? \"Essai à la demande : sur une vraie panne passagère, le débogueur relance tout seul, une fois.\" : \"Essai à la demande : une relance referait la même erreur, il faut corriger avant.\"; }\nelse if (signalee) {\n  action = 'se taire'; raison = 'Même panne déjà signalée à ' + hm(signalee.quand) + ' : pas de nouvelle alerte avant ' + hm(Date.parse(signalee.quand) + p.rappel_minutes * 60000) + '.';\n  Object.assign(p, { etat: 'déjà signalée', cause: signalee.cause || '', correction_texte: signalee.correction || '', verification: signalee.verification || '', confiance: signalee.confiance || '', analyse: 'mémoire', action_faite: 'déjà signalée à ' + hm(signalee.quand) + ', pas de nouvelle alerte', relance_id: '', duree_s: 0 });\n}\nelse if (p.relancable && !p.relance_autorisee && !p.deja_relance) { action = 'proposer'; raison = \"Panne passagère, mais ce workflow n'est pas inscrit pour la relance automatique : relancer pourrait refaire un envoi ou un paiement déjà parti. À relancer à la main, après vérification.\"; }\nelse if (p.relancable && !p.deja_relance && sansEffet < p.max_relances && p.execution_id) { action = 'relancer'; raison = \"Panne passagère, workflow inscrit pour la relance automatique : une nouvelle tentative est sans risque.\"; }\nelse if (p.relancable) { action = 'alerter'; raison = \"Déjà relancé sans succès : la panne dure, une personne doit regarder.\"; }\nelse { action = 'proposer'; raison = \"Une relance referait la même erreur : il faut corriger avant.\"; }\np.action = action; p.raison = raison;\np.avant = ['\\ud83d\\udd34 <b>' + (p.origine === 'panne réelle' ? 'Panne détectée à ' : 'Essai, panne simulée à ') + hm(p.quand) + '</b>', '« ' + esc(p.workflow) + ' »', 'Étape : ' + esc(p.etape), 'Erreur : ' + esc(p.message), '', 'Diagnostic en cours, le résultat arrive dans quelques secondes.'].join('\\n');\np.faits = ['Workflow : ' + p.workflow, 'Étape en panne : ' + p.etape, \"Message d'erreur : \" + p.message, p.detail ? 'Détail : ' + p.detail : '', 'Famille de panne, décidée par une règle : ' + p.famille, 'Déjà vue ces dernières 24 heures : ' + p.deja_vue + ' fois'].filter(Boolean).join('\\n');\nreturn [{ json: p }];"
+      },
+      "id": "daf1fdeb-a229-4d86-987a-1020b5e4ba37",
+      "name": "Décider quoi faire",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1392,
+        128
+      ]
+    },
+    {
+      "parameters": {
+        "text": "={{ $('Décider quoi faire').first().json.faits }}",
+        "schemaType": "manual",
+        "inputSchema": "{\"type\":\"object\",\"properties\":{\"cause\":{\"type\":\"string\",\"description\":\"La cause la plus probable de la panne, en deux phrases courtes, sans jargon.\"},\"correction\":{\"type\":\"array\",\"items\":{\"type\":\"string\"},\"description\":\"Deux ou trois gestes concrets à faire dans n8n, dans l'ordre, une phrase chacun.\"},\"verification\":{\"type\":\"string\",\"description\":\"Comment vérifier que la panne est réparée, en une phrase.\"},\"confiance\":{\"type\":\"string\",\"enum\":[\"élevée\",\"moyenne\",\"faible\"],\"description\":\"Ta confiance dans cette cause.\"}},\"required\":[\"cause\",\"correction\",\"verification\",\"confiance\"]}",
+        "options": {
+          "systemPromptTemplate": "Tu es un technicien n8n. Tu expliques une panne de workflow à une personne qui n'est pas développeuse, en français simple.\n\nRègles :\n1. Appuie-toi seulement sur les faits fournis. N'invente aucun nom d'outil, aucune adresse, aucun chiffre.\n2. La famille de panne a déjà été décidée par une règle : ne la contredis pas.\n3. Ne propose que des gestes faisables dans n8n ou chez le service appelé. Jamais de modification automatique du workflow.\n4. Des secrets ont été masqués dans le message : ne cherche pas à les deviner.\n5. Phrases courtes, pas de tiret long, pas de superlatif."
+        }
+      },
+      "id": "b058fe99-fc63-460f-a3ef-083496153e8d",
+      "name": "Demander la cause à l'IA",
+      "type": "@n8n/n8n-nodes-langchain.informationExtractor",
+      "typeVersion": 1.2,
+      "position": [
+        2528,
+        128
+      ],
+      "retryOnFail": true,
+      "maxTries": 2,
+      "waitBetweenTries": 2000,
+      "onError": "continueRegularOutput"
+    },
+    {
+      "parameters": {
+        "model": {
+          "__rl": true,
+          "mode": "list",
+          "value": "claude-sonnet-5",
+          "cachedResultName": "Claude Sonnet 5"
+        },
+        "options": {}
+      },
+      "id": "8f695ef0-52e7-41c3-ba22-33809513b550",
+      "name": "Claude",
+      "type": "@n8n/n8n-nodes-langchain.lmChatAnthropic",
+      "typeVersion": 1.6,
+      "position": [
+        2608,
+        352
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "// L'IA explique, le code vérifie. Si l'IA ne répond pas ou sort du cadre, les règles écrites prennent le relais : le rapport sort toujours.\nconst p = Object.assign({}, $('Décider quoi faire').first().json);\nconst r = $input.first().json || {}, o = r.output || {};\nconst propre = t => String(t || '').replace(/[\\u2014\\u2013]/g, ',').replace(/\\s+/g, ' ').trim();\nlet source = 'IA vérifiée par le code';\nlet cause = propre(o.cause), correction = Array.isArray(o.correction) ? o.correction.map(propre).filter(Boolean).slice(0, 3) : [], verification = propre(o.verification), confiance = propre(o.confiance).toLowerCase();\nconst ok = cause.length >= 20 && cause.length <= 420 && correction.length >= 1 && correction.every(c => c.length <= 260) && ['élevée', 'moyenne', 'faible'].indexOf(confiance) >= 0;\nif (!ok) { source = 'règles écrites'; cause = p.cause_regle; correction = p.correction_regle.slice(0, 3); verification = \"Relancer l'exécution : elle doit aller jusqu'au bout.\"; confiance = p.famille === 'panne non reconnue' ? 'faible' : 'moyenne'; }\nObject.assign(p, { cause: cause, correction: correction, verification: verification, confiance: confiance, analyse: source });\nreturn [{ json: p }];\n"
+      },
+      "id": "6f969e2e-9015-4371-822c-ceee0b45a4d7",
+      "name": "Vérifier la réponse",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        2864,
+        128
+      ]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 1
+          },
+          "conditions": [
+            {
+              "leftValue": "={{ $json.action }}",
+              "rightValue": "relancer",
+              "operator": {
+                "type": "string",
+                "operation": "equals"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "4e8c1d8e-867e-40ce-b1ed-41f0d2989e7b",
+      "name": "Relance automatique ?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        3104,
+        128
+      ]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "={{ $json.adresse_n8n }}/api/v1/executions/{{ $json.execution_id }}/retry",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "n8nApi",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "{ \"loadWorkflow\": true }",
+        "options": {
+          "timeout": 20000
+        }
+      },
+      "id": "3fa4a253-281c-4f72-bbea-f91d20e333fc",
+      "name": "Relancer l'exécution dans n8n",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        3328,
+        0
+      ],
+      "retryOnFail": true,
+      "maxTries": 3,
+      "waitBetweenTries": 3000,
+      "onError": "continueErrorOutput"
+    },
+    {
+      "parameters": {
+        "jsCode": "// Ce que le débogueur a fait, dit simplement. Il relance, ou il propose. Il ne publie seul qu'un réglage, les nouvelles tentatives, sur les workflows inscrits pour cela.\nconst p = Object.assign({}, $('Vérifier la réponse').first().json);\nconst r = $input.first().json || {};\nconst court = t => String(t || '').replace(/\\s+/g, ' ').slice(0, 140);\nconst esc = t => String(t || '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');\nlet fait, etat;\nif (p.action === 'ignorer') { fait = 'rien, la panne vient du débogueur lui-même'; etat = 'ignoré'; }\nelse if (p.action === 'relancer') {\n  const err = r.error, motif = err ? court(typeof err === 'string' ? err : (err.message || err.description || '')) : '';\n  if (err) { fait = /credential/i.test(motif) ? \"relance impossible, la connexion à l'API de n8n n'est pas encore posée dans le nœud de relance\" : 'relance impossible' + (motif ? ' (' + motif + ')' : ''); etat = 'à corriger'; }\n  else if (r.status === 'success' || r.finished === true) { fait = 'relancé automatiquement, et cette fois le workflow est allé au bout' + (r.id ? ' (exécution ' + r.id + ')' : ''); etat = 'réparé'; p.relance_id = String(r.id || ''); }\n  else if (r.status === 'error' || r.status === 'crashed') { fait = 'relancé automatiquement, mais la panne est toujours là'; etat = 'à surveiller'; }\n  else { fait = 'relancé automatiquement' + (r.id ? ' (exécution ' + r.id + ')' : ''); etat = 'à surveiller'; }\n}\nelse if (p.action === 'alerter') { fait = 'pas de nouvelle relance, la panne dure'; etat = 'à surveiller'; }\nelse { fait = 'correction proposée, rien modifié'; etat = p.origine === 'panne réelle' ? 'à corriger' : 'essai'; }\np.action_faite = fait; p.etat = etat; p.relance_id = p.relance_id || '';\np.duree_s = Math.max(1, Math.round((Date.now() - Date.parse(p.quand)) / 1000));\np.correction_texte = p.correction.join(' | ');\n// Réparé tout seul, ou workflow de confort : le message part sans sonnerie. Une personne doit agir : il sonne.\np.silencieux = etat === 'réparé' || p.importance === 'confort';\n// Une personne doit agir : le message porte trois boutons, relancer, mettre en pause, ne rien faire. Elle décide, un autre workflow exécute.\np.boutons = p.origine === 'panne réelle' && etat !== 'réparé' && etat !== 'ignoré' && !!p.execution_id;\n// Une correction simple, choisie par une règle écrite, pour une panne passagère sur un workflow inscrit. Ici rien n'est modifié : c'est un autre workflow qui l'exécute, sur un bouton ou sur la demande du débogueur.\np.proposition = null;\nif (p.origine === 'panne réelle' && p.correction_autorisee && (etat === 'réparé' || etat === 'à corriger') && p.execution_id && p.noeud_type && (p.famille === 'service indisponible' || p.famille === 'trop de requêtes')) {\n  const t = (p.message + ' ' + p.detail).toLowerCase(), s = ms => Math.round(ms / 1000) + ' s';\n  let geste = '', quoi = '';\n  if (/timeout of|connection was aborted|econnaborted/.test(t) && /httpRequest$/.test(p.noeud_type) && p.noeud_delai > 0 && p.noeud_delai < 120000) { geste = 'd'; quoi = \"allonger le délai d'attente de cette étape, de \" + s(p.noeud_delai) + ' à ' + s(Math.min(p.noeud_delai * 2, 120000)) + '. Un service lent ne fera plus échouer le workflow.'; }\n  else if (!p.noeud_relance) { geste = 't'; quoi = \"activer les nouvelles tentatives sur cette étape, 3 essais à 5 secondes d'intervalle. Une coupure brève ne fera plus échouer le workflow.\"; }\n  // Sans attendre : seulement les nouvelles tentatives, seulement si la relance vient de prouver que la panne était passagère, seulement sur un workflow inscrit pour cela.\n  if (geste) p.proposition = { geste: geste, automatique: geste === 't' && etat === 'réparé' && p.correction_automatique === true, texte: ['🛠 <b>Correction prête pour « ' + esc(p.workflow) + ' »</b>', 'Étape : ' + esc(p.etape), 'Ce que je propose : ' + quoi, '', \"Rien n'est modifié tant que vous n'appuyez pas. Après publication, un bouton permet d'annuler.\"].join('\\n') };\n}\nconst titre = p.origine !== 'panne réelle' ? 'ESSAI du débogueur sur « ' + esc(p.workflow) + ' »' : etat === 'réparé' ? '\\ud83d\\udfe2 Réparé tout seul en ' + p.duree_s + ' s : « ' + esc(p.workflow) + ' »' : etat === 'à surveiller' ? '\\ud83d\\udfe0 La panne dure sur « ' + esc(p.workflow) + ' »' : etat === 'ignoré' ? 'Panne du débogueur lui-même' : '\\ud83d\\udfe0 À corriger sur « ' + esc(p.workflow) + ' »';\nconst L = [];\nL.push('<b>' + titre + '</b>' + (p.origine === 'panne réelle' && p.importance === 'critique' ? ' · workflow critique' : ''));\nL.push('Étape : ' + esc(p.etape));\nL.push('Erreur : ' + esc(p.message));\nL.push('');\nL.push('Cause probable : ' + esc(p.cause));\nL.push('');\nL.push(etat === 'réparé' ? 'Pour éviter que ça revienne :' : 'À faire :');\np.correction.filter(c => !(etat === 'réparé' && /^relancer/i.test(c))).forEach((c, k) => L.push((k + 1) + '. ' + esc(c)));\nL.push('');\nL.push(\"Ce que j'ai fait : \" + esc(fait) + '.');\nL.push(/impossible/.test(fait) ? \"Relance à la main possible : ouvrir l'exécution, bouton « Retry ».\" : esc(p.raison));\nif (etat === 'réparé') L.push('Aucune action nécessaire.');\nif (p.deja_vue) L.push('Déjà vue ' + p.deja_vue + ' fois en 24 heures.');\nif (p.secrets_masques) L.push(p.secrets_masques + (p.secrets_masques > 1 ? ' secrets masqués' : ' secret masqué') + \" avant l'analyse.\");\nif (p.execution_url) L.push('Exécution : ' + esc(p.execution_url));\nif (p.boutons) L.push('', 'À vous de décider, avec les boutons ci-dessous.');\nif (p.proposition) L.push('', 'Pour que ça ne revienne pas, une correction est prête : elle arrive dans le message suivant.');\np.texte = L.join('\\n').slice(0, 3500);\nconst ligne = (k, v) => '<tr><td style=\"padding:10px 14px;border-top:1px solid #E3E8EF;color:#205E8E;font-weight:600;font-size:12px;text-transform:uppercase;letter-spacing:.05em;vertical-align:top;width:170px\">' + k + '</td><td style=\"padding:10px 14px;border-top:1px solid #E3E8EF;font-size:15px;line-height:1.5\">' + v + '</td></tr>';\nconst pastille = (t, c) => '<span style=\"display:inline-block;background:' + c + ';border-radius:999px;padding:4px 12px;font-size:12.5px;font-weight:600;margin:0 6px 6px 0\">' + esc(t) + '</span>';\np.html = '<div style=\"font-family:Poppins,Helvetica,Arial,sans-serif;color:#17202E;text-align:left;max-width:760px;margin:0 auto\">'\n  + '<p style=\"font-size:12px;letter-spacing:.08em;text-transform:uppercase;color:#757575;font-weight:600;margin:0 0 6px\">Débogueur automatique</p>'\n  + '<h2 style=\"font-size:24px;margin:0 0 6px\">' + esc(p.workflow) + '</h2>'\n  + '<p style=\"margin:0 0 14px\">' + pastille('Famille : ' + p.famille, '#FFF0E8') + pastille(p.relancable ? 'Relance utile' : 'Relance inutile', p.relancable ? '#E4F6EE' : '#FDE7F0') + pastille('Analyse : ' + p.analyse, '#E7F1F9') + (p.secrets_masques ? pastille(p.secrets_masques + (p.secrets_masques > 1 ? ' secrets masqués' : ' secret masqué'), '#F0F0F2') : '') + '</p>'\n  + '<table style=\"width:100%;border-collapse:collapse;background:#fff;border:1px solid #E3E8EF;border-radius:14px;overflow:hidden\">'\n  + ligne('Étape en panne', '<b>' + esc(p.etape) + '</b>') + ligne(\"Message d'erreur\", '<code style=\"font-size:13px\">' + esc(p.message) + (p.detail ? '<br>' + esc(p.detail) : '') + '</code>')\n  + ligne('Cause probable', esc(p.cause)) + ligne('À faire', '<ol style=\"margin:0;padding-left:20px\">' + p.correction.map(c => '<li>' + esc(c) + '</li>').join('') + '</ol>')\n  + ligne('Pour vérifier', esc(p.verification)) + ligne('Confiance', esc(p.confiance)) + ligne(\"Ce que j'ai fait\", '<b>' + esc(fait) + '.</b> ' + esc(p.raison))\n  + '</table><p style=\"font-size:12.5px;color:#757575;margin:14px 0 0\">Le débogueur relance une panne passagère, une seule fois, et pour le reste il propose. Il ne publie seul que les nouvelles tentatives, sur les workflows inscrits pour cela, et un bouton permet de revenir en arrière. Toute autre correction attend la validation de la personne qui maintient.</p></div>';\nreturn [{ json: p }];"
+      },
+      "id": "2f1311de-3358-4450-bd48-9291ed155df1",
+      "name": "Conclure et composer le message",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        3568,
+        128
+      ]
+    },
+    {
+      "parameters": {
+        "resource": "row",
+        "operation": "upsert",
+        "dataTableId": {
+          "__rl": true,
+          "mode": "list",
+          "value": "",
+          "cachedResultName": "Journal du débogueur"
+        },
+        "matchType": "allConditions",
+        "filters": {
+          "conditions": [
+            {
+              "keyName": "cle",
+              "condition": "eq",
+              "keyValue": "={{ $json.cle }}"
+            }
+          ]
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "cle": "={{ $json.cle }}",
+            "quand": "={{ $json.quand }}",
+            "origine": "={{ $json.origine }}",
+            "workflow": "={{ $json.workflow }}",
+            "workflow_id": "={{ $json.workflow_id }}",
+            "etape": "={{ $json.etape }}",
+            "famille": "={{ $json.famille }}",
+            "message": "={{ $json.message }}",
+            "execution_id": "={{ $json.execution_id }}",
+            "deja_vue": "={{ $json.deja_vue }}",
+            "cause": "={{ $json.cause }}",
+            "correction": "={{ $json.correction_texte }}",
+            "verification": "={{ $json.verification }}",
+            "confiance": "={{ $json.confiance }}",
+            "action": "={{ $json.action_faite }}",
+            "analyse": "={{ $json.analyse }}",
+            "etat": "={{ $json.etat }}",
+            "relance_id": "={{ $json.relance_id }}",
+            "duree_s": "={{ $json.duree_s }}"
+          },
+          "matchingColumns": [],
+          "schema": [
+            {
+              "id": "quand",
+              "displayName": "quand",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "origine",
+              "displayName": "origine",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "workflow",
+              "displayName": "workflow",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "etape",
+              "displayName": "etape",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "famille",
+              "displayName": "famille",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "message",
+              "displayName": "message",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "cause",
+              "displayName": "cause",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "action",
+              "displayName": "action",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "analyse",
+              "displayName": "analyse",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "execution_id",
+              "displayName": "execution_id",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "deja_vue",
+              "displayName": "deja_vue",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "number",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "cle",
+              "displayName": "cle",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "etat",
+              "displayName": "etat",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "correction",
+              "displayName": "correction",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "verification",
+              "displayName": "verification",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "confiance",
+              "displayName": "confiance",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "workflow_id",
+              "displayName": "workflow_id",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "relance_id",
+              "displayName": "relance_id",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "duree_s",
+              "displayName": "duree_s",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "number",
+              "canBeUsedToMatch": true
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "fdb67ae7-9c24-451d-886c-6103b867828d",
+      "name": "Écrire dans le journal",
+      "type": "n8n-nodes-base.dataTable",
+      "typeVersion": 1.1,
+      "position": [
+        3808,
+        128
+      ],
+      "retryOnFail": true,
+      "maxTries": 3,
+      "waitBetweenTries": 1000,
+      "onError": "continueRegularOutput"
+    },
+    {
+      "parameters": {
+        "chatId": "={{ $('Conclure et composer le message').first().json.telegram_chat_id }}",
+        "text": "={{ $('Conclure et composer le message').first().json.texte }}",
+        "additionalFields": {
+          "appendAttribution": false,
+          "parse_mode": "HTML",
+          "disable_notification": "={{ $('Conclure et composer le message').first().json.silencieux }}"
+        }
+      },
+      "id": "3e05dbf2-24bf-4a38-bd6a-e605effd1009",
+      "name": "Telegram, après : le résultat",
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1.2,
+      "position": [
+        4272,
+        240
+      ],
+      "retryOnFail": true,
+      "maxTries": 3,
+      "waitBetweenTries": 2000,
+      "onError": "continueRegularOutput"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 1
+          },
+          "conditions": [
+            {
+              "leftValue": "={{ $('Conclure et composer le message').first().json.origine }}",
+              "rightValue": "essai à la demande",
+              "operator": {
+                "type": "string",
+                "operation": "equals"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "2d006cb3-5aa2-487f-9f39-beecc73fc744",
+      "name": "Lancé à la demande ?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        5988,
+        128
+      ]
+    },
+    {
+      "parameters": {
+        "operation": "completion",
+        "respondWith": "showText",
+        "responseText": "={{ $('Conclure et composer le message').first().json.html }}"
+      },
+      "id": "1a36d5d2-fa6b-4112-af86-623b2c82a428",
+      "name": "Afficher le rapport",
+      "type": "n8n-nodes-base.form",
+      "typeVersion": 2.5,
+      "position": [
+        6212,
+        32
+      ]
+    },
+    {
+      "parameters": {
+        "content": "## Débogueur automatique\nPar **Elie LISSODA**, automatisation marketing · [elie.koudujob.com](https://elie.koudujob.com)\n\nUn workflow qui casse à 5 heures du matin ne prévient personne. Celui-ci vous écrit sur Telegram dès la panne, relance tout seul ce qui est passager, puis vous dit si c'est réparé ou quoi corriger. Pour une panne passagère, il prépare une correction simple : vous la publiez d'un bouton, ou elle part sans attendre sur les workflows que vous avez inscrits pour cela, et un bouton l'annule. L'IA explique la panne, elle ne choisit jamais la correction.\n\nPour le lancer : connectez Claude et Telegram, créez une clé API n8n et la table « Journal du débogueur », puis déclarez ce workflow comme Error workflow dans vos autres workflows.\n\nUne question ? Je suis disponible sur [elie.koudujob.com](https://elie.koudujob.com) 😉",
+        "height": 440,
+        "width": 600,
+        "color": 2
+      },
+      "id": "5dc08b8e-8780-460d-a298-4d4bb688740f",
+      "name": "Présentation",
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        -704,
+        -240
+      ]
+    },
+    {
+      "parameters": {
+        "content": "## 1. Deux façons de démarrer\nEn haut : une vraie panne. Tout workflow qui choisit celui-ci comme « Error Workflow » l'appelle en tombant.\nEn bas : un essai à la demande, par un formulaire.",
+        "height": 724,
+        "width": 440,
+        "color": 7
+      },
+      "id": "4a9b01bd-ba2d-467d-9256-e4cf439c5e74",
+      "name": "Sticky Note 32f3277c",
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        -64,
+        -240
+      ]
+    },
+    {
+      "parameters": {
+        "content": "## 2. Comprendre, masquer, classer\nLe code lit l'étape et le message d'erreur. Les clés, jetons et adresses e-mail sont masqués avant tout. Une règle écrite range la panne dans une famille : c'est elle qui dit si une relance a un sens.",
+        "height": 532,
+        "width": 660,
+        "color": 5
+      },
+      "id": "8d6ff771-7c56-4a20-9639-4e22035f0faa",
+      "name": "Sticky Note ebb22d69",
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        432,
+        -240
+      ]
+    },
+    {
+      "parameters": {
+        "content": "## 3. Se souvenir\nLa même panne a-t-elle déjà été vue ? Une relance ne se tente qu'une fois. Et une panne déjà signalée ne redéclenche pas d'alerte avant une heure : un workflow qui casse toutes les 5 minutes ne vous écrit pas 288 fois dans la journée.",
+        "height": 532,
+        "width": 880
+      },
+      "id": "43779f13-312a-4e1b-b35a-2a7ee041563b",
+      "name": "Sticky Note ddb2aead",
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        1120,
+        -240
+      ]
+    },
+    {
+      "parameters": {
+        "content": "## 5. L'IA explique, le code vérifie\nClaude rédige la cause et la correction à partir des faits masqués. Si sa réponse sort du cadre, ou s'il ne répond pas, les règles écrites prennent le relais : le rapport sort toujours.",
+        "height": 720,
+        "width": 550,
+        "color": 6
+      },
+      "id": "3ac5fdee-f2b0-4c7f-90f9-b1a8caeff6dd",
+      "name": "Sticky Note 45347af8",
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        2480,
+        -240
+      ]
+    },
+    {
+      "parameters": {
+        "content": "## 6. Réparer ce qui peut l'être\nPanne passagère sur un workflow inscrit dans Réglages : l'exécution est relancée par l'API de n8n. Les autres ne sont jamais relancés seuls, un envoi ou un paiement pourrait partir deux fois. Rien n'est modifié, la correction est proposée.",
+        "height": 532,
+        "width": 670,
+        "color": 4
+      },
+      "id": "3aa34f61-acfd-42d2-ad93-1f5eead155a6",
+      "name": "Sticky Note dd7fd0ef",
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        3056,
+        -240
+      ]
+    },
+    {
+      "parameters": {
+        "content": "## 7. Tracer et annoncer le résultat\nLe journal reçoit la conclusion, puis un second message part sur Telegram. Réparé tout seul, ou workflow de confort : sans sonnerie. Une personne doit agir : avec sonnerie, et trois boutons pour décider. Aucun secret ne sort.",
+        "height": 620,
+        "width": 720,
+        "color": 7
+      },
+      "id": "5de6fee9-b43f-4e84-b42a-35fc6bf3b24e",
+      "name": "Sticky Note 1bf407b6",
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        3760,
+        -240
+      ]
+    },
+    {
+      "id": "7a55204b-be9f-46c2-99b9-9c43f89bde3a",
+      "name": "Déjà signalée ?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        1616,
+        128
+      ],
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 1
+          },
+          "conditions": [
+            {
+              "leftValue": "={{ $json.action }}",
+              "rightValue": "se taire",
+              "operator": {
+                "type": "string",
+                "operation": "equals"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      }
+    },
+    {
+      "id": "c57ae089-4007-442e-a47e-bcdebaadc66f",
+      "name": "Noter le rappel, sans alerter",
+      "type": "n8n-nodes-base.dataTable",
+      "typeVersion": 1.1,
+      "position": [
+        1840,
+        -48
+      ],
+      "parameters": {
+        "resource": "row",
+        "operation": "insert",
+        "dataTableId": {
+          "__rl": true,
+          "mode": "list",
+          "value": "",
+          "cachedResultName": "Journal du débogueur"
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "cle": "={{ $json.cle }}",
+            "quand": "={{ $json.quand }}",
+            "origine": "={{ $json.origine }}",
+            "workflow": "={{ $json.workflow }}",
+            "workflow_id": "={{ $json.workflow_id }}",
+            "etape": "={{ $json.etape }}",
+            "famille": "={{ $json.famille }}",
+            "message": "={{ $json.message }}",
+            "execution_id": "={{ $json.execution_id }}",
+            "deja_vue": "={{ $json.deja_vue }}",
+            "cause": "={{ $json.cause }}",
+            "correction": "={{ $json.correction_texte }}",
+            "verification": "={{ $json.verification }}",
+            "confiance": "={{ $json.confiance }}",
+            "action": "={{ $json.action_faite }}",
+            "analyse": "={{ $json.analyse }}",
+            "etat": "={{ $json.etat }}",
+            "relance_id": "={{ $json.relance_id }}",
+            "duree_s": "={{ $json.duree_s }}"
+          },
+          "matchingColumns": [],
+          "schema": [
+            {
+              "id": "quand",
+              "displayName": "quand",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "origine",
+              "displayName": "origine",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "workflow",
+              "displayName": "workflow",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "etape",
+              "displayName": "etape",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "famille",
+              "displayName": "famille",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "message",
+              "displayName": "message",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "cause",
+              "displayName": "cause",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "action",
+              "displayName": "action",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "analyse",
+              "displayName": "analyse",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "execution_id",
+              "displayName": "execution_id",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "deja_vue",
+              "displayName": "deja_vue",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "number",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "cle",
+              "displayName": "cle",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "etat",
+              "displayName": "etat",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "correction",
+              "displayName": "correction",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "verification",
+              "displayName": "verification",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "confiance",
+              "displayName": "confiance",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "workflow_id",
+              "displayName": "workflow_id",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "relance_id",
+              "displayName": "relance_id",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "duree_s",
+              "displayName": "duree_s",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "number",
+              "canBeUsedToMatch": true
+            }
+          ]
+        },
+        "options": {}
+      },
+      "onError": "continueRegularOutput",
+      "retryOnFail": true,
+      "maxTries": 3,
+      "waitBetweenTries": 1000
+    },
+    {
+      "id": "1b5471b9-b0d4-4962-9b3d-042582471b89",
+      "name": "Noter la panne",
+      "type": "n8n-nodes-base.dataTable",
+      "typeVersion": 1.1,
+      "position": [
+        2064,
+        128
+      ],
+      "parameters": {
+        "resource": "row",
+        "operation": "insert",
+        "dataTableId": {
+          "__rl": true,
+          "mode": "list",
+          "value": "",
+          "cachedResultName": "Journal du débogueur"
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "cle": "={{ $json.cle }}",
+            "quand": "={{ $json.quand }}",
+            "origine": "={{ $json.origine }}",
+            "workflow": "={{ $json.workflow }}",
+            "workflow_id": "={{ $json.workflow_id }}",
+            "etape": "={{ $json.etape }}",
+            "famille": "={{ $json.famille }}",
+            "message": "={{ $json.message }}",
+            "execution_id": "={{ $json.execution_id }}",
+            "deja_vue": "={{ $json.deja_vue }}",
+            "etat": "diagnostic en cours"
+          },
+          "matchingColumns": [],
+          "schema": [
+            {
+              "id": "quand",
+              "displayName": "quand",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "origine",
+              "displayName": "origine",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "workflow",
+              "displayName": "workflow",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "etape",
+              "displayName": "etape",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "famille",
+              "displayName": "famille",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "message",
+              "displayName": "message",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "cause",
+              "displayName": "cause",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "action",
+              "displayName": "action",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "analyse",
+              "displayName": "analyse",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "execution_id",
+              "displayName": "execution_id",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "deja_vue",
+              "displayName": "deja_vue",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "number",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "cle",
+              "displayName": "cle",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "etat",
+              "displayName": "etat",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "correction",
+              "displayName": "correction",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "verification",
+              "displayName": "verification",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "confiance",
+              "displayName": "confiance",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "workflow_id",
+              "displayName": "workflow_id",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "relance_id",
+              "displayName": "relance_id",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "duree_s",
+              "displayName": "duree_s",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "number",
+              "canBeUsedToMatch": true
+            }
+          ]
+        },
+        "options": {}
+      },
+      "onError": "continueRegularOutput",
+      "retryOnFail": true,
+      "maxTries": 3,
+      "waitBetweenTries": 1000
+    },
+    {
+      "id": "9631997e-75fe-45b6-be22-74c1e4ef4ef6",
+      "name": "Telegram, avant : panne détectée",
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1.2,
+      "position": [
+        2288,
+        128
+      ],
+      "parameters": {
+        "chatId": "={{ $('Décider quoi faire').first().json.telegram_chat_id }}",
+        "text": "={{ $('Décider quoi faire').first().json.avant }}",
+        "additionalFields": {
+          "appendAttribution": false,
+          "parse_mode": "HTML",
+          "disable_notification": true
+        }
+      },
+      "onError": "continueRegularOutput",
+      "retryOnFail": true,
+      "maxTries": 3,
+      "waitBetweenTries": 2000
+    },
+    {
+      "id": "d4d57d66-ad08-495b-92b4-1986771c2a20",
+      "name": "Sticky Note avant",
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        2016,
+        -240
+      ],
+      "parameters": {
+        "content": "## 4. Prévenir tout de suite\nAvant même de chercher la cause : la panne est notée au journal et un premier message part sur Telegram, sans sonnerie. Si le débogueur tombait à son tour, vous sauriez déjà qu'il y a une panne.",
+        "width": 450,
+        "height": 532,
+        "color": 3
+      }
+    },
+    {
+      "id": "8350f0e9-a3e9-4ffc-854b-610513f94237",
+      "name": "Une personne doit agir ?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        4032,
+        128
+      ],
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 1
+          },
+          "conditions": [
+            {
+              "leftValue": "={{ $('Conclure et composer le message').first().json.boutons }}",
+              "rightValue": "",
+              "operator": {
+                "type": "boolean",
+                "operation": "true",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      }
+    },
+    {
+      "id": "c0397b7d-3074-405d-bcf9-08e6bd34491c",
+      "name": "Telegram, après : à vous de décider",
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1.2,
+      "position": [
+        4272,
+        0
+      ],
+      "retryOnFail": true,
+      "maxTries": 3,
+      "waitBetweenTries": 2000,
+      "onError": "continueRegularOutput",
+      "parameters": {
+        "chatId": "={{ $('Conclure et composer le message').first().json.telegram_chat_id }}",
+        "text": "={{ $('Conclure et composer le message').first().json.texte }}",
+        "replyMarkup": "inlineKeyboard",
+        "inlineKeyboard": {
+          "rows": [
+            {
+              "row": {
+                "buttons": [
+                  {
+                    "text": "Relancer",
+                    "additionalFields": {
+                      "callback_data": "={{ 'dbg|r|' + $('Conclure et composer le message').first().json.cle }}"
+                    }
+                  },
+                  {
+                    "text": "Mettre en pause",
+                    "additionalFields": {
+                      "callback_data": "={{ 'dbg|p|' + $('Conclure et composer le message').first().json.cle }}"
+                    }
+                  }
+                ]
+              }
+            },
+            {
+              "row": {
+                "buttons": [
+                  {
+                    "text": "Ne rien faire",
+                    "additionalFields": {
+                      "callback_data": "={{ 'dbg|n|' + $('Conclure et composer le message').first().json.cle }}"
+                    }
+                  }
+                ]
+              }
+            }
+          ]
+        },
+        "additionalFields": {
+          "appendAttribution": false,
+          "parse_mode": "HTML",
+          "disable_notification": "={{ $('Conclure et composer le message').first().json.silencieux }}"
+        }
+      }
+    },
+    {
+      "id": "5d65f253-ea91-485b-a5a3-8f609a4e3427",
+      "name": "Une correction est prête ?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        4572,
+        128
+      ],
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 1
+          },
+          "conditions": [
+            {
+              "leftValue": "={{ !!$('Conclure et composer le message').first().json.proposition }}",
+              "rightValue": "",
+              "operator": {
+                "type": "boolean",
+                "operation": "true",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      }
+    },
+    {
+      "id": "1c658c34-e830-4e5b-b8b8-3e86b0fd3dff",
+      "name": "Telegram : proposer la correction",
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1.2,
+      "position": [
+        5692,
+        144
+      ],
+      "retryOnFail": true,
+      "maxTries": 3,
+      "waitBetweenTries": 2000,
+      "onError": "continueRegularOutput",
+      "parameters": {
+        "chatId": "={{ $('Conclure et composer le message').first().json.telegram_chat_id }}",
+        "text": "={{ $('Conclure et composer le message').first().json.proposition.texte }}",
+        "replyMarkup": "inlineKeyboard",
+        "inlineKeyboard": {
+          "rows": [
+            {
+              "row": {
+                "buttons": [
+                  {
+                    "text": "Publier cette correction",
+                    "additionalFields": {
+                      "callback_data": "={{ 'dbg|' + $('Conclure et composer le message').first().json.proposition.geste + '|' + $('Conclure et composer le message').first().json.cle }}"
+                    }
+                  }
+                ]
+              }
+            }
+          ]
+        },
+        "additionalFields": {
+          "appendAttribution": false,
+          "parse_mode": "HTML",
+          "disable_notification": true
+        }
+      }
+    },
+    {
+      "id": "60a983cf-6182-4b3b-a4a6-33e2ce94889d",
+      "name": "Peut-il corriger seul ?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        4796,
+        32
+      ],
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 1
+          },
+          "conditions": [
+            {
+              "leftValue": "={{ $('Conclure et composer le message').first().json.proposition.automatique === true }}",
+              "rightValue": "",
+              "operator": {
+                "type": "boolean",
+                "operation": "true",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      }
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "ddbee68b-1b53-4c92-960b-edf6519cf86d",
+              "name": "geste",
+              "value": "={{ $('Conclure et composer le message').first().json.proposition.geste }}",
+              "type": "string"
+            },
+            {
+              "id": "1282db01-768e-4824-b893-bbf72246defe",
+              "name": "cle",
+              "value": "={{ $('Conclure et composer le message').first().json.cle }}",
+              "type": "string"
+            }
+          ]
+        },
+        "includeOtherFields": false,
+        "options": {}
+      },
+      "id": "72474586-c137-4eeb-a3a2-faf6c6bb94a3",
+      "name": "Préparer la demande",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        5020,
+        -64
+      ]
+    },
+    {
+      "id": "e1fe863c-469f-44e5-85a4-3b4bc5e20963",
+      "name": "Corriger sans attendre",
+      "type": "n8n-nodes-base.executeWorkflow",
+      "typeVersion": 1.2,
+      "position": [
+        5244,
+        -64
+      ],
+      "onError": "continueRegularOutput",
+      "alwaysOutputData": true,
+      "parameters": {
+        "workflowId": {
+          "__rl": true,
+          "value": "",
+          "mode": "list",
+          "cachedResultName": "Débogueur : vous décidez depuis Telegram, il exécute (relancer, mettre en pause, corriger)"
+        },
+        "workflowInputs": {
+          "mappingMode": "defineBelow",
+          "value": {},
+          "matchingColumns": [],
+          "schema": [],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": true
+        },
+        "options": {
+          "waitForSubWorkflow": true
+        }
+      }
+    },
+    {
+      "id": "c82c270f-8809-4493-b00f-cd113f6a37d6",
+      "name": "Corrigé sans attendre ?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        5468,
+        -64
+      ],
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 1
+          },
+          "conditions": [
+            {
+              "leftValue": "={{ $json.publie === true }}",
+              "rightValue": "",
+              "operator": {
+                "type": "boolean",
+                "operation": "true",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      }
+    },
+    {
+      "parameters": {
+        "content": "## 8. Corriger, pour que ça ne revienne pas\nPanne passagère sur un workflow inscrit : une correction simple est prête, choisie par une règle écrite. Workflow inscrit pour la correction automatique : les nouvelles tentatives sont publiées sans attendre par le workflow des boutons, vous êtes prévenu et un bouton annule. Sinon, ou si la publication n'a pas eu lieu : la correction vous est proposée, vous la publiez d'un bouton.",
+        "height": 620,
+        "width": 1400,
+        "color": 6
+      },
+      "id": "71cede0e-6d13-4aee-b7b6-282173198fd0",
+      "name": "Sticky Note corriger",
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        4500,
+        -240
+      ]
+    },
+    {
+      "parameters": {
+        "content": "## 9. Rapport à l'écran\nSeulement pour un diagnostic lancé à la demande, par le formulaire.",
+        "height": 620,
+        "width": 540,
+        "color": 5
+      },
+      "id": "9d8c9e8e-f5a8-4138-a588-778a4825922a",
+      "name": "Sticky Note rapport",
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        5920,
+        -240
+      ]
+    }
+  ],
+  "connections": {
+    "Quand un workflow tombe en panne": {
+      "main": [
+        [
+          {
+            "node": "Réglages",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Réglages": {
+      "main": [
+        [
+          {
+            "node": "Comprendre la panne",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Diagnostic à la demande": {
+      "main": [
+        [
+          {
+            "node": "Réglages",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Comprendre la panne": {
+      "main": [
+        [
+          {
+            "node": "Masquer les secrets",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Masquer les secrets": {
+      "main": [
+        [
+          {
+            "node": "Classer la panne",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Classer la panne": {
+      "main": [
+        [
+          {
+            "node": "Chercher dans la mémoire",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Chercher dans la mémoire": {
+      "main": [
+        [
+          {
+            "node": "Décider quoi faire",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Demander la cause à l'IA": {
+      "main": [
+        [
+          {
+            "node": "Vérifier la réponse",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Claude": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "Demander la cause à l'IA",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Vérifier la réponse": {
+      "main": [
+        [
+          {
+            "node": "Relance automatique ?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Relance automatique ?": {
+      "main": [
+        [
+          {
+            "node": "Relancer l'exécution dans n8n",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Conclure et composer le message",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Relancer l'exécution dans n8n": {
+      "main": [
+        [
+          {
+            "node": "Conclure et composer le message",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Conclure et composer le message",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Conclure et composer le message": {
+      "main": [
+        [
+          {
+            "node": "Écrire dans le journal",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Écrire dans le journal": {
+      "main": [
+        [
+          {
+            "node": "Une personne doit agir ?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Lancé à la demande ?": {
+      "main": [
+        [
+          {
+            "node": "Afficher le rapport",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Décider quoi faire": {
+      "main": [
+        [
+          {
+            "node": "Déjà signalée ?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Déjà signalée ?": {
+      "main": [
+        [
+          {
+            "node": "Noter le rappel, sans alerter",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Noter la panne",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Noter la panne": {
+      "main": [
+        [
+          {
+            "node": "Telegram, avant : panne détectée",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Telegram, avant : panne détectée": {
+      "main": [
+        [
+          {
+            "node": "Demander la cause à l'IA",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Telegram, après : le résultat": {
+      "main": [
+        [
+          {
+            "node": "Une correction est prête ?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Une personne doit agir ?": {
+      "main": [
+        [
+          {
+            "node": "Telegram, après : à vous de décider",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Telegram, après : le résultat",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Telegram, après : à vous de décider": {
+      "main": [
+        [
+          {
+            "node": "Une correction est prête ?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Une correction est prête ?": {
+      "main": [
+        [
+          {
+            "node": "Peut-il corriger seul ?",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Lancé à la demande ?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Telegram : proposer la correction": {
+      "main": [
+        [
+          {
+            "node": "Lancé à la demande ?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Peut-il corriger seul ?": {
+      "main": [
+        [
+          {
+            "node": "Préparer la demande",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Telegram : proposer la correction",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Préparer la demande": {
+      "main": [
+        [
+          {
+            "node": "Corriger sans attendre",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Corriger sans attendre": {
+      "main": [
+        [
+          {
+            "node": "Corrigé sans attendre ?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Corrigé sans attendre ?": {
+      "main": [
+        [
+          {
+            "node": "Lancé à la demande ?",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Telegram : proposer la correction",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1"
+  }
+}
