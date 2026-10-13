@@ -1,0 +1,631 @@
+{
+  "name": "RAG Bastion : bibliothèque",
+  "nodes": [
+    {
+      "id": "5a61b003-0000-4000-8000-000000000001",
+      "name": "Recevoir une demande du portail",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2.1,
+      "position": [
+        0,
+        -112
+      ],
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "rag-bastion/bibliotheque",
+        "responseMode": "lastNode",
+        "responseData": "firstEntryJson",
+        "options": {}
+      }
+    },
+    {
+      "id": "5a61b003-0000-4000-8000-000000000002",
+      "name": "Lancer un essai de liste",
+      "type": "n8n-nodes-base.manualTrigger",
+      "typeVersion": 1,
+      "position": [
+        0,
+        112
+      ],
+      "parameters": {}
+    },
+    {
+      "id": "5a61b003-0000-4000-8000-000000000003",
+      "name": "Lire la demande",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        224,
+        0
+      ],
+      "parameters": {
+        "mode": "runOnceForAllItems",
+        "language": "javaScript",
+        "jsCode": "// Lire la demande du portail : dresser la liste de la bibliothèque, ou retirer un document. Toute autre demande est refusée.\nconst e0 = $input.first().json || {};\nconst e = e0.body && typeof e0.body === 'object' && !Array.isArray(e0.body) ? e0.body : e0;\nconst action = String(e.action || 'lister'), doc_id = String(e.doc_id || '');\nconst valide = action === 'lister' || (action === 'retirer' && /^doc-[a-z0-9-]{4,40}$/.test(doc_id));\nreturn [{ json: { action: valide ? action : 'inconnue', doc_id: doc_id } }];"
+      }
+    },
+    {
+      "id": "5a61b003-0000-4000-8000-000000000006",
+      "name": "Quelle demande ?",
+      "type": "n8n-nodes-base.switch",
+      "typeVersion": 3.2,
+      "position": [
+        448,
+        0
+      ],
+      "parameters": {
+        "rules": {
+          "values": [
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 2
+                },
+                "conditions": [
+                  {
+                    "id": "5a61b003-0000-4000-8000-000000000004",
+                    "leftValue": "={{ $json.action }}",
+                    "rightValue": "lister",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "lister"
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 2
+                },
+                "conditions": [
+                  {
+                    "id": "5a61b003-0000-4000-8000-000000000005",
+                    "leftValue": "={{ $json.action }}",
+                    "rightValue": "retirer",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "retirer"
+            }
+          ]
+        },
+        "options": {
+          "fallbackOutput": "extra"
+        }
+      }
+    },
+    {
+      "id": "5a61b003-0000-4000-8000-000000000007",
+      "name": "Lire le registre",
+      "type": "n8n-nodes-base.dataTable",
+      "typeVersion": 1.1,
+      "position": [
+        672,
+        -224
+      ],
+      "parameters": {
+        "resource": "row",
+        "operation": "get",
+        "dataTableId": {
+          "__rl": true,
+          "mode": "list",
+          "value": "",
+          "cachedResultName": "RAG Bastion : documents"
+        },
+        "matchType": "allConditions",
+        "filters": {
+          "conditions": [
+            {
+              "keyName": "statut",
+              "condition": "eq",
+              "keyValue": "en_service"
+            }
+          ]
+        },
+        "returnAll": true
+      },
+      "alwaysOutputData": true
+    },
+    {
+      "id": "5a61b003-0000-4000-8000-000000000008",
+      "name": "Lire les passages en service",
+      "type": "n8n-nodes-base.dataTable",
+      "typeVersion": 1.1,
+      "position": [
+        896,
+        -224
+      ],
+      "parameters": {
+        "resource": "row",
+        "operation": "get",
+        "dataTableId": {
+          "__rl": true,
+          "mode": "list",
+          "value": "",
+          "cachedResultName": "RAG Bastion : passages"
+        },
+        "matchType": "allConditions",
+        "filters": {
+          "conditions": [
+            {
+              "keyName": "en_service",
+              "condition": "eq",
+              "keyValue": true
+            }
+          ]
+        },
+        "returnAll": true
+      },
+      "alwaysOutputData": true,
+      "executeOnce": true
+    },
+    {
+      "id": "5a61b003-0000-4000-8000-000000000009",
+      "name": "Dresser la carte",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1120,
+        -224
+      ],
+      "parameters": {
+        "mode": "runOnceForAllItems",
+        "language": "javaScript",
+        "jsCode": "// Dresser la carte : chaque passage reçoit une position en deux dimensions, calculée à partir de son vecteur.\n// Deux passages proches sur la carte parlent du même sujet. Le calcul est une analyse en composantes principales, sans aucun service extérieur.\nconst docs = $('Lire le registre').all(0).map(i => i.json).filter(d => d && d.doc_id);\nconst lignes = $input.all().map(i => i.json).filter(l => l && l.doc_id && l.vecteur);\nconst V = lignes.map(l => { try { return JSON.parse(l.vecteur); } catch (err) { return []; } });\nconst n = V.length, dim = n ? V[0].length : 0;\nlet coords = V.map(() => [0, 0]);\nif (n > 1 && dim) {\n  const moy = new Array(dim).fill(0); V.forEach(v => { for (let i = 0; i < dim; i++) moy[i] += v[i] / n; });\n  const X = V.map(v => v.map((x, i) => x - moy[i]));\n  // Matrice des ressemblances entre passages (n × n) : bien plus petite que la matrice des 512 dimensions.\n  const G = X.map(a => X.map(b => { let s = 0; for (let i = 0; i < dim; i++) s += a[i] * b[i]; return s; }));\n  const axe = M => {                                // premier axe d'une matrice, par itérations ; départ fixe, pour une carte stable d'un appel à l'autre\n    let u = M.map((_, i) => 1 + ((i * 37) % 11) / 10), l = 0;\n    for (let k = 0; k < 120; k++) { const w = M.map(r => r.reduce((s, x, j) => s + x * u[j], 0)); l = Math.sqrt(w.reduce((s, x) => s + x * x, 0)) || 1; u = w.map(x => x / l); }\n    const fort = u.reduce((a, x) => Math.abs(x) > Math.abs(a) ? x : a, 0); if (fort < 0) u = u.map(x => -x);\n    return { u: u, l: l };\n  };\n  const a1 = axe(G), G2 = G.map((r, i) => r.map((x, j) => x - a1.l * a1.u[i] * a1.u[j])), a2 = axe(G2);\n  coords = V.map((_, i) => [a1.u[i] * Math.sqrt(a1.l), n > 2 ? a2.u[i] * Math.sqrt(a2.l) : 0]);\n}\n// Mise à l'échelle dans la carte, avec une marge : de 8 à 92 %.\nconst placer = k => { const xs = coords.map(c => c[k]), min = Math.min.apply(null, xs), max = Math.max.apply(null, xs), e = max - min; return coords.map(c => e > 1e-9 ? Math.round((8 + 84 * (c[k] - min) / e) * 10) / 10 : 50); };\nconst xs = n ? placer(0) : [], ys = n ? placer(1) : [];\nreturn [{ json: {\n  documents: docs.map(d => ({ doc_id: d.doc_id, titre: d.titre, version: d.version, origine: d.origine, source: d.source, nb_passages: d.nb_passages, en_service_le: d.en_service_le, nb_ecartes: d.nb_ecartes || 0, alertes: d.alertes || '[]' })),\n  passages: lignes.map((l, i) => ({ doc_id: l.doc_id, ordre: l.ordre, repere: l.repere, page: l.page, contenu: l.contenu, x: xs[i], y: ys[i] })) } }];"
+      }
+    },
+    {
+      "id": "5a61b003-0000-4000-8000-000000000010",
+      "name": "Chercher le document à retirer",
+      "type": "n8n-nodes-base.dataTable",
+      "typeVersion": 1.1,
+      "position": [
+        672,
+        112
+      ],
+      "parameters": {
+        "resource": "row",
+        "operation": "get",
+        "dataTableId": {
+          "__rl": true,
+          "mode": "list",
+          "value": "",
+          "cachedResultName": "RAG Bastion : documents"
+        },
+        "matchType": "allConditions",
+        "filters": {
+          "conditions": [
+            {
+              "keyName": "doc_id",
+              "condition": "eq",
+              "keyValue": "={{ $json.doc_id }}"
+            },
+            {
+              "keyName": "statut",
+              "condition": "eq",
+              "keyValue": "en_service"
+            }
+          ]
+        },
+        "returnAll": true
+      },
+      "alwaysOutputData": true
+    },
+    {
+      "id": "5a61b003-0000-4000-8000-000000000012",
+      "name": "Document en service ?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        896,
+        112
+      ],
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "5a61b003-0000-4000-8000-000000000011",
+              "leftValue": "={{ !!$json.doc_id }}",
+              "rightValue": "",
+              "operator": {
+                "type": "boolean",
+                "operation": "true",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      }
+    },
+    {
+      "id": "5a61b003-0000-4000-8000-000000000013",
+      "name": "Effacer ses passages",
+      "type": "n8n-nodes-base.dataTable",
+      "typeVersion": 1.1,
+      "position": [
+        1120,
+        112
+      ],
+      "parameters": {
+        "resource": "row",
+        "operation": "deleteRows",
+        "dataTableId": {
+          "__rl": true,
+          "mode": "list",
+          "value": "",
+          "cachedResultName": "RAG Bastion : passages"
+        },
+        "matchType": "allConditions",
+        "filters": {
+          "conditions": [
+            {
+              "keyName": "doc_id",
+              "condition": "eq",
+              "keyValue": "={{ $('Lire la demande').first().json.doc_id }}"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "executeOnce": true,
+      "alwaysOutputData": true
+    },
+    {
+      "id": "5a61b003-0000-4000-8000-000000000014",
+      "name": "Classer le document retiré",
+      "type": "n8n-nodes-base.dataTable",
+      "typeVersion": 1.1,
+      "position": [
+        1344,
+        112
+      ],
+      "parameters": {
+        "resource": "row",
+        "operation": "update",
+        "dataTableId": {
+          "__rl": true,
+          "mode": "list",
+          "value": "",
+          "cachedResultName": "RAG Bastion : documents"
+        },
+        "matchType": "allConditions",
+        "filters": {
+          "conditions": [
+            {
+              "keyName": "doc_id",
+              "condition": "eq",
+              "keyValue": "={{ $('Lire la demande').first().json.doc_id }}"
+            },
+            {
+              "keyName": "statut",
+              "condition": "eq",
+              "keyValue": "en_service"
+            }
+          ]
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "statut": "retire",
+            "retire_le": "={{ $now.toISO() }}"
+          },
+          "matchingColumns": [],
+          "schema": [
+            {
+              "id": "statut",
+              "displayName": "statut",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "retire_le",
+              "displayName": "retire_le",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "dateTime",
+              "canBeUsedToMatch": true,
+              "removed": false
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        },
+        "options": {}
+      },
+      "executeOnce": true,
+      "alwaysOutputData": true
+    },
+    {
+      "id": "5a61b003-0000-4000-8000-000000000015",
+      "name": "Confirmer le retrait",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1568,
+        112
+      ],
+      "parameters": {
+        "mode": "runOnceForAllItems",
+        "language": "javaScript",
+        "jsCode": "// Confirmer le retrait : le document est sorti du service, ses passages et leurs vecteurs sont effacés, la ligne du registre reste pour la trace.\nconst d = $('Chercher le document à retirer').first().json;\nreturn [{ json: { statut: 'retire', doc_id: d.doc_id, titre: d.titre, version: d.version, nb_passages: Number(d.nb_passages) || 0,\n  etapes: [{ nom: 'Retiré', detail: 'document hors service' }, { nom: 'Effacé', detail: (Number(d.nb_passages) || 0) + ' passages et leurs vecteurs' }, { nom: 'Noté', detail: 'retrait inscrit au registre' }] } }];"
+      }
+    },
+    {
+      "id": "5a61b003-0000-4000-8000-000000000016",
+      "name": "Refuser la demande",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1120,
+        400
+      ],
+      "parameters": {
+        "mode": "runOnceForAllItems",
+        "language": "javaScript",
+        "jsCode": "// Refuser clairement : demande inconnue, ou document qui n'est pas en service.\nconst d = $('Lire la demande').first().json;\nreturn [{ json: { statut: 'erreur', message: d.action === 'retirer' ? 'Ce document n\\'est pas en service : il a peut-être déjà été retiré.' : 'Demande inconnue : il faut « lister » ou « retirer ».' } }];"
+      }
+    },
+    {
+      "id": "5a61b003-0000-4000-8000-000000000017",
+      "name": "Répondre au portail",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1792,
+        -56
+      ],
+      "parameters": {
+        "mode": "runOnceForAllItems",
+        "language": "javaScript",
+        "jsCode": "// Répondre au portail : la liste et la carte, la confirmation du retrait, ou le refus.\nconst lire = n => { try { return $(n).first(0).json; } catch (e) { return null; } };\nreturn [{ json: lire('Dresser la carte') || lire('Confirmer le retrait') || lire('Refuser la demande') || { statut: 'erreur', message: 'Réponse introuvable.' } }];"
+      }
+    },
+    {
+      "id": "5a61b003-0000-4000-8000-000000000018",
+      "name": "Note 1",
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        -60,
+        -560
+      ],
+      "parameters": {
+        "content": "## RAG Bastion : bibliothèque\nPar **Elie LISSODA**, automatisation et IA · [elie.koudujob.com](https://elie.koudujob.com)\n\nUn outil qui répond sur des documents doit montrer lesquels il connaît, et pouvoir en oublier un. Ce workflow dresse la liste des documents en service avec la carte de leurs passages, et retire un document à la demande : ses passages et leurs vecteurs sont effacés, il disparaît aussitôt des réponses.\n\nPour le lancer : les tables « RAG Bastion : documents » et « RAG Bastion : passages ». Aucun modèle n'est appelé ici.\n\nUne question ? Je suis disponible sur [elie.koudujob.com](https://elie.koudujob.com) 😉",
+        "width": 600,
+        "height": 280,
+        "color": 2
+      }
+    },
+    {
+      "id": "5a61b003-0000-4000-8000-000000000019",
+      "name": "Note 2",
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        622,
+        -340
+      ],
+      "parameters": {
+        "content": "## Lister, et dessiner la carte\nChaque passage reçoit une position en deux dimensions, calculée à partir de son vecteur. Deux passages voisins parlent du même sujet.",
+        "width": 720,
+        "height": 280,
+        "color": 5
+      }
+    },
+    {
+      "id": "5a61b003-0000-4000-8000-000000000020",
+      "name": "Note 3",
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        622,
+        -40
+      ],
+      "parameters": {
+        "content": "## Retirer un document\nSes passages sont effacés, puis le registre le classe « retiré ». La ligne du registre reste : on sait toujours ce qui a été en service, et quand.",
+        "width": 1092,
+        "height": 320,
+        "color": 1
+      }
+    }
+  ],
+  "connections": {
+    "Recevoir une demande du portail": {
+      "main": [
+        [
+          {
+            "node": "Lire la demande",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Lancer un essai de liste": {
+      "main": [
+        [
+          {
+            "node": "Lire la demande",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Lire la demande": {
+      "main": [
+        [
+          {
+            "node": "Quelle demande ?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Quelle demande ?": {
+      "main": [
+        [
+          {
+            "node": "Lire le registre",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Chercher le document à retirer",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Refuser la demande",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Lire le registre": {
+      "main": [
+        [
+          {
+            "node": "Lire les passages en service",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Lire les passages en service": {
+      "main": [
+        [
+          {
+            "node": "Dresser la carte",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Dresser la carte": {
+      "main": [
+        [
+          {
+            "node": "Répondre au portail",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Chercher le document à retirer": {
+      "main": [
+        [
+          {
+            "node": "Document en service ?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Document en service ?": {
+      "main": [
+        [
+          {
+            "node": "Effacer ses passages",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Refuser la demande",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Effacer ses passages": {
+      "main": [
+        [
+          {
+            "node": "Classer le document retiré",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Classer le document retiré": {
+      "main": [
+        [
+          {
+            "node": "Confirmer le retrait",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Confirmer le retrait": {
+      "main": [
+        [
+          {
+            "node": "Répondre au portail",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Refuser la demande": {
+      "main": [
+        [
+          {
+            "node": "Répondre au portail",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1"
+  }
+}

@@ -1,6 +1,6 @@
 # Workflows n8n
 
-Je m'appelle Elie LISSODA et je construis des automatisations marketing et commerciales avec n8n et l'IA. Voici dix-sept workflows que j'ai conçus pour de vrais besoins : être cité par les IA, suivre ses chiffres sans y passer la matinée, trouver et relancer des prospects, garder un CRM propre, lire des factures, surveiller ses automatisations.
+Je m'appelle Elie LISSODA et je construis des automatisations marketing et commerciales avec n8n et l'IA. Voici dix-huit workflows que j'ai conçus pour de vrais besoins : être cité par les IA, suivre ses chiffres sans y passer la matinée, trouver et relancer des prospects, garder un CRM propre, lire des factures, surveiller ses automatisations.
 
 Chacun est prêt à importer. Dans n8n, des notes de couleur expliquent chaque étape. Sur GitHub, le README du dossier dit ce qu'il fait, comment l'installer, et ce qui a été testé.
 
@@ -39,6 +39,7 @@ Chacun est prêt à importer. Dans n8n, des notes de couleur expliquent chaque �
 | Workflow | Ce qu'il fait | Outils |
 |---|---|---|
 | [Extraction de factures et de devis](extraction-documents/) | Extrait les données d'un PDF, recontrôle montants, SIRET et IBAN, repère les doublons et n'alerte que si un regard humain est nécessaire | Claude, Telegram |
+| [RAG Bastion](rag-bastion/) | Répond à partir des documents de l'entreprise, cite le passage mot pour mot, masque les identifiants, écarte les consignes cachées d'un document et refuse quand la preuve manque | Claude, OpenAI (vecteurs), Tables n8n |
 | [Assistant RAG sur documents internes](assistant-rag/) | Répond aux questions des équipes à partir des documents de l'entreprise et cite chaque source | Agent Claude, OpenAI (vecteurs) |
 | [Débogueur automatique](debogueur-automatique/) | Vous écrit sur Telegram dès la panne, masque les secrets, relance ce qui est passager, fait expliquer la cause par Claude et propose la correction, validée d'un bouton | API n8n, Claude, Telegram |
 | [Surveillance des workflows](surveillance-workflows/) | Classe chaque erreur, relance les pannes passagères, évite les alertes en double et envoie un bilan chaque matin | API n8n, Telegram |
