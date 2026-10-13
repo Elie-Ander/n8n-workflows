@@ -277,7 +277,7 @@
       "typeVersion": 1.1,
       "position": [
         896,
-        448
+        380
       ],
       "parameters": {
         "resource": "row",
@@ -310,7 +310,7 @@
       "typeVersion": 2,
       "position": [
         1120,
-        448
+        380
       ],
       "parameters": {
         "mode": "runOnceForAllItems",
@@ -325,7 +325,7 @@
       "typeVersion": 2,
       "position": [
         1792,
-        448
+        380
       ],
       "parameters": {
         "mode": "runOnceForAllItems",
@@ -475,8 +475,8 @@
       "type": "n8n-nodes-base.stickyNote",
       "typeVersion": 1,
       "position": [
-        -60,
-        -560
+        -760,
+        -190
       ],
       "parameters": {
         "content": "## RAG Bastion : réponse à une question\nPar **Elie LISSODA**, automatisation et IA · [elie.koudujob.com](https://elie.koudujob.com)\n\nUne IA qui répond sur des documents d'entreprise doit prouver ce qu'elle dit, et savoir se taire. Ce workflow masque les identifiants de la question, retrouve les passages les plus proches, fait rédiger Claude à partir de ces seuls passages, puis vérifie par le code que la citation existe mot pour mot.\n\nPour le lancer : les identifiants OpenAI et Anthropic, puis les tables « RAG Bastion : passages » et « RAG Bastion : journal ». Déposer d'abord des documents avec le workflow « RAG Bastion : dépôt ».\n\nUne question ? Je suis disponible sur [elie.koudujob.com](https://elie.koudujob.com) 😉",
@@ -492,12 +492,12 @@
       "typeVersion": 1,
       "position": [
         398,
-        -200
+        -160
       ],
       "parameters": {
         "content": "## 1. Protéger\nNom, numéro de sécurité sociale, IBAN, téléphone, e-mail et numéro d'adhérent sont masqués avant toute recherche et avant tout modèle. Une question sur un dossier, ou une consigne suspecte, est refusée ici même, par le code.",
         "width": 420,
-        "height": 440,
+        "height": 350,
         "color": 1
       }
     },
@@ -508,12 +508,12 @@
       "typeVersion": 1,
       "position": [
         846,
-        -312
+        -212
       ],
       "parameters": {
         "content": "## 2. Chercher\nLa question devient un vecteur, comparé à celui de chaque passage en service. Les cinq plus proches sont gardés.",
         "width": 868,
-        "height": 420,
+        "height": 270,
         "color": 5
       }
     },
@@ -524,12 +524,12 @@
       "typeVersion": 1,
       "position": [
         1742,
-        -424
+        -324
       ],
       "parameters": {
-        "content": "## 3. Rédiger, puis vérifier\nClaude ne reçoit que ces passages, présentés comme des données et jamais comme des consignes. Le code vérifie ensuite que la phrase citée existe mot pour mot dans le passage. Sinon, la réponse est retenue.",
+        "content": "## 3. Rédiger, puis vérifier\nClaude ne reçoit que ces passages, comme des données et jamais comme des consignes. Le code vérifie que la phrase citée existe mot pour mot. Sinon, la réponse est retenue.",
         "width": 644,
-        "height": 640,
+        "height": 500,
         "color": 6
       }
     },
@@ -540,12 +540,12 @@
       "typeVersion": 1,
       "position": [
         846,
-        250
+        262
       ],
       "parameters": {
-        "content": "## Refus sans modèle\nAucune recherche, aucun appel à un modèle. Le refus cite la règle interne qui le fonde, si un document en service la contient.",
+        "content": "## Refus sans modèle\nAucune recherche, aucun appel à un modèle. Le refus cite la règle interne qui le fonde, si un document la contient.",
         "width": 420,
-        "height": 360,
+        "height": 280,
         "color": 3
       }
     },
@@ -556,12 +556,12 @@
       "typeVersion": 1,
       "position": [
         1742,
-        250
+        262
       ],
       "parameters": {
         "content": "## En cas de panne\nUn service ne répond pas : l'outil le dit, il ne répond pas au hasard. La panne est notée au journal.",
         "width": 470,
-        "height": 360,
+        "height": 280,
         "color": 3
       }
     },
@@ -572,12 +572,12 @@
       "typeVersion": 1,
       "position": [
         2414,
-        -180
+        -100
       ],
       "parameters": {
         "content": "## 4. Noter\nLa question notée est la version masquée, avec le statut et la source.",
         "width": 420,
-        "height": 380,
+        "height": 280,
         "color": 4
       }
     }
