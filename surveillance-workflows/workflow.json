@@ -274,7 +274,10 @@
             }
           ]
         }
-      }
+      },
+      "retryOnFail": true,
+      "maxTries": 3,
+      "waitBetweenTries": 5000
     },
     {
       "id": "3caf7589-8c00-469d-b6d0-847d0d383290",
@@ -328,7 +331,8 @@
           "timeout": 20000
         }
       },
-      "onError": "continueRegularOutput"
+      "onError": "continueRegularOutput",
+      "retryOnFail": false
     },
     {
       "id": "0147ae40-0315-47bb-b267-b06922de7f86",
@@ -452,7 +456,10 @@
         },
         "returnAll": true
       },
-      "alwaysOutputData": true
+      "alwaysOutputData": true,
+      "retryOnFail": true,
+      "maxTries": 3,
+      "waitBetweenTries": 5000
     },
     {
       "id": "21a6a3a6-1f14-4274-bebe-6825ba5366bb",
@@ -575,7 +582,10 @@
           "parse_mode": "HTML",
           "disable_web_page_preview": true
         }
-      }
+      },
+      "retryOnFail": true,
+      "maxTries": 3,
+      "waitBetweenTries": 5000
     }
   ],
   "connections": {

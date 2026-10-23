@@ -47,7 +47,10 @@
         "additionalFields": {
           "text": "={{ $json.valide ? 'Demande reçue.' : 'Bouton non reconnu.' }}"
         }
-      }
+      },
+      "retryOnFail": true,
+      "maxTries": 3,
+      "waitBetweenTries": 5000
     },
     {
       "id": "f647d38b-3813-4b4f-a8eb-49f3bb22bb61",
@@ -82,7 +85,10 @@
         },
         "returnAll": false,
         "limit": 1
-      }
+      },
+      "retryOnFail": true,
+      "maxTries": 3,
+      "waitBetweenTries": 5000
     },
     {
       "id": "0b44ab57-e638-42b7-8f00-bdc7c42b4d60",
@@ -202,7 +208,8 @@
         "options": {
           "timeout": 30000
         }
-      }
+      },
+      "retryOnFail": false
     },
     {
       "id": "0e4aa9c2-feea-4ea6-bb53-2cc23b8dcfdf",
@@ -223,7 +230,10 @@
         "options": {
           "timeout": 15000
         }
-      }
+      },
+      "retryOnFail": true,
+      "maxTries": 3,
+      "waitBetweenTries": 5000
     },
     {
       "id": "6e506f64-4dad-4963-a03c-392e3ae7df2a",
@@ -460,7 +470,10 @@
         },
         "method": "GET",
         "url": "={{ $json.adresse_n8n }}/api/v1/workflows/{{ $json.workflow_id }}"
-      }
+      },
+      "retryOnFail": true,
+      "maxTries": 3,
+      "waitBetweenTries": 5000
     },
     {
       "id": "f9b1fc7b-9121-4251-84e1-81a2984a9334",
@@ -530,7 +543,10 @@
         "sendBody": true,
         "specifyBody": "json",
         "jsonBody": "={{ JSON.stringify($json.corps) }}"
-      }
+      },
+      "retryOnFail": true,
+      "maxTries": 3,
+      "waitBetweenTries": 5000
     },
     {
       "id": "e94d70d9-5a8a-4a7d-b9ca-b6226976c6bc",
@@ -554,7 +570,10 @@
         "sendBody": true,
         "specifyBody": "json",
         "jsonBody": "={{ JSON.stringify({ versionId: $json.versionId, name: $('Vérifier la demande').first().json.automatique ? 'Correction automatique du débogueur' : 'Correction validée sur Telegram', description: $('Préparer la correction').first().json.fait }) }}"
-      }
+      },
+      "retryOnFail": true,
+      "maxTries": 3,
+      "waitBetweenTries": 5000
     },
     {
       "id": "25c0df0b-6acc-40e7-8671-943e8ba04bd6",
@@ -575,7 +594,10 @@
         },
         "method": "GET",
         "url": "={{ $('Préparer la correction').first().json.adresse_n8n }}/api/v1/workflows/{{ $('Préparer la correction').first().json.workflow_id }}"
-      }
+      },
+      "retryOnFail": true,
+      "maxTries": 3,
+      "waitBetweenTries": 5000
     },
     {
       "id": "e7ba1349-4345-49ec-adf1-92f4136eeb51",

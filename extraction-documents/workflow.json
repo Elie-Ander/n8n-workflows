@@ -291,7 +291,10 @@
         "options": {
           "systemPromptTemplate": "Tu extrais les données d'une facture ou d'un devis rédigé en français. Recopie les valeurs telles qu'elles figurent dans le document et n'invente rien : un champ absent reste vide, un montant absent vaut 0. Les montants sont des nombres avec un point décimal, sans symbole. Les dates sont au format AAAA-MM-JJ."
         }
-      }
+      },
+      "retryOnFail": true,
+      "maxTries": 3,
+      "waitBetweenTries": 5000
     },
     {
       "id": "774b0598-897f-444b-941c-c81563d1078e",
@@ -363,7 +366,10 @@
         "returnAll": false,
         "limit": 1
       },
-      "alwaysOutputData": true
+      "alwaysOutputData": true,
+      "retryOnFail": true,
+      "maxTries": 3,
+      "waitBetweenTries": 5000
     },
     {
       "id": "0c4481b2-5904-4ba9-8258-e7967f68b4ea",
@@ -565,7 +571,10 @@
             }
           ]
         }
-      }
+      },
+      "retryOnFail": true,
+      "maxTries": 3,
+      "waitBetweenTries": 5000
     },
     {
       "id": "2bd7fe53-f637-45b4-a6e4-3b95eb6fe195",
@@ -624,7 +633,10 @@
           "parse_mode": "HTML",
           "disable_web_page_preview": true
         }
-      }
+      },
+      "retryOnFail": true,
+      "maxTries": 3,
+      "waitBetweenTries": 5000
     },
     {
       "id": "397a1686-e083-420d-9bcd-e2791dbbe8db",

@@ -134,7 +134,10 @@
           "mode": "id",
           "value": "base_documents_internes"
         }
-      }
+      },
+      "retryOnFail": true,
+      "maxTries": 3,
+      "waitBetweenTries": 5000
     },
     {
       "id": "e2b431e7-c9ba-4705-a58f-5099cbf97be3",
@@ -234,7 +237,10 @@
           "value": "base_documents_internes"
         },
         "clearStore": true
-      }
+      },
+      "retryOnFail": true,
+      "maxTries": 3,
+      "waitBetweenTries": 5000
     },
     {
       "id": "228e4b06-fc93-4f57-9efe-2530c678d6a2",
@@ -328,7 +334,10 @@
           "systemMessage": "Tu es l'assistant documentaire de l'entreprise. Tu réponds uniquement à partir des documents internes, que tu consultes avec l'outil « Base documentaire », à chaque question.\n\nRègles :\n- Chaque information vient d'un passage renvoyé par l'outil ; cite sa source entre crochets, par exemple [Grille tarifaire 2026.pdf].\n- Si plusieurs documents se complètent, croise-les et cite-les tous.\n- Si les documents ne contiennent pas la réponse, dis-le clairement et indique à qui s'adresser. N'invente jamais un chiffre, un délai ou une règle.\n- Réponses courtes, en français, sans tiret cadratin ni demi-cadratin.",
           "maxIterations": 6
         }
-      }
+      },
+      "retryOnFail": true,
+      "maxTries": 3,
+      "waitBetweenTries": 5000
     },
     {
       "id": "1cadd1a7-1e69-4624-bb29-c7030bb9c991",
@@ -463,7 +472,10 @@
             }
           ]
         }
-      }
+      },
+      "retryOnFail": true,
+      "maxTries": 3,
+      "waitBetweenTries": 5000
     },
     {
       "id": "be905bc2-7808-41b5-a614-46880a90599a",

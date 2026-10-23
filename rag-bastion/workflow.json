@@ -163,7 +163,10 @@
         "returnAll": true
       },
       "alwaysOutputData": true,
-      "executeOnce": true
+      "executeOnce": true,
+      "retryOnFail": true,
+      "maxTries": 3,
+      "waitBetweenTries": 5000
     },
     {
       "id": "5a61b001-0000-4000-8000-000000000010",
@@ -301,7 +304,10 @@
         "returnAll": true
       },
       "alwaysOutputData": true,
-      "executeOnce": true
+      "executeOnce": true,
+      "retryOnFail": true,
+      "maxTries": 3,
+      "waitBetweenTries": 5000
     },
     {
       "id": "5a61b001-0000-4000-8000-000000000017",
@@ -452,7 +458,10 @@
         },
         "options": {}
       },
-      "executeOnce": true
+      "executeOnce": true,
+      "retryOnFail": true,
+      "maxTries": 3,
+      "waitBetweenTries": 5000
     },
     {
       "id": "5a61b001-0000-4000-8000-000000000020",

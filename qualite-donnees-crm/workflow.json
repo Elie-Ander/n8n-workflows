@@ -242,9 +242,13 @@
               "limitPagesFetched": true,
               "maxRequests": 50
             }
-          }
+          },
+          "timeout": 30000
         }
-      }
+      },
+      "retryOnFail": true,
+      "maxTries": 3,
+      "waitBetweenTries": 5000
     },
     {
       "id": "def78095-5b41-4e76-b562-eb016dc2ec78",
@@ -340,8 +344,13 @@
         "contentType": "json",
         "specifyBody": "json",
         "jsonBody": "={{ JSON.stringify($json) }}",
-        "options": {}
-      }
+        "options": {
+          "timeout": 30000
+        }
+      },
+      "retryOnFail": true,
+      "maxTries": 3,
+      "waitBetweenTries": 5000
     },
     {
       "id": "48606fc7-d511-4bd8-ab39-0f66d93a5ca3",
@@ -473,7 +482,10 @@
             }
           ]
         }
-      }
+      },
+      "retryOnFail": true,
+      "maxTries": 3,
+      "waitBetweenTries": 5000
     },
     {
       "id": "106d580e-69f9-4681-8244-0b56be4b1d4d",
@@ -494,7 +506,10 @@
         "options": {
           "appendAttribution": false
         }
-      }
+      },
+      "retryOnFail": true,
+      "maxTries": 3,
+      "waitBetweenTries": 5000
     }
   ],
   "connections": {

@@ -254,7 +254,10 @@
         "options": {
           "systemPromptTemplate": "Tu qualifies des signaux d'achat B2B. N'utilise que les faits fournis, n'en invente aucun. Un score élevé exige un signal récent et daté qui rend l'offre pertinente maintenant ; sans signal, le score reste sous 20. Réponds en français, sans tiret cadratin."
         }
-      }
+      },
+      "retryOnFail": true,
+      "maxTries": 3,
+      "waitBetweenTries": 5000
     },
     {
       "id": "ac56b0ae-b626-438b-9d41-d69064670078",
@@ -395,7 +398,10 @@
             }
           ]
         }
-      }
+      },
+      "retryOnFail": true,
+      "maxTries": 3,
+      "waitBetweenTries": 5000
     },
     {
       "id": "00afde1e-43cb-47fb-b5a8-5b5a91624d92",
@@ -449,7 +455,10 @@
           "timeout": 20000
         }
       },
-      "onError": "continueRegularOutput"
+      "onError": "continueRegularOutput",
+      "retryOnFail": true,
+      "maxTries": 3,
+      "waitBetweenTries": 5000
     },
     {
       "id": "9eac7eae-a844-458b-9f2d-9df4a005993f",
@@ -485,7 +494,10 @@
           "parse_mode": "HTML",
           "disable_web_page_preview": true
         }
-      }
+      },
+      "retryOnFail": true,
+      "maxTries": 3,
+      "waitBetweenTries": 5000
     },
     {
       "id": "acc6ec67-c23a-49e9-b065-2150abc3f1e3",

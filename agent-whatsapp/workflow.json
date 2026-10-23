@@ -190,7 +190,10 @@
             }
           ]
         }
-      }
+      },
+      "retryOnFail": true,
+      "maxTries": 3,
+      "waitBetweenTries": 5000
     },
     {
       "id": "5b66189b-5ffa-4f37-aa1e-80f0ae31bd6f",
@@ -241,7 +244,10 @@
         "additionalFields": {
           "appendAttribution": false
         }
-      }
+      },
+      "retryOnFail": true,
+      "maxTries": 3,
+      "waitBetweenTries": 5000
     }
   ],
   "connections": {

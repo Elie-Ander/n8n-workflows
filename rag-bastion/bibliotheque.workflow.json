@@ -141,7 +141,10 @@
         },
         "returnAll": true
       },
-      "alwaysOutputData": true
+      "alwaysOutputData": true,
+      "retryOnFail": true,
+      "maxTries": 3,
+      "waitBetweenTries": 5000
     },
     {
       "id": "5a61b003-0000-4000-8000-000000000008",
@@ -174,7 +177,10 @@
         "returnAll": true
       },
       "alwaysOutputData": true,
-      "executeOnce": true
+      "executeOnce": true,
+      "retryOnFail": true,
+      "maxTries": 3,
+      "waitBetweenTries": 5000
     },
     {
       "id": "5a61b003-0000-4000-8000-000000000009",
@@ -226,7 +232,10 @@
         },
         "returnAll": true
       },
-      "alwaysOutputData": true
+      "alwaysOutputData": true,
+      "retryOnFail": true,
+      "maxTries": 3,
+      "waitBetweenTries": 5000
     },
     {
       "id": "5a61b003-0000-4000-8000-000000000012",
@@ -293,7 +302,10 @@
         "options": {}
       },
       "executeOnce": true,
-      "alwaysOutputData": true
+      "alwaysOutputData": true,
+      "retryOnFail": true,
+      "maxTries": 3,
+      "waitBetweenTries": 5000
     },
     {
       "id": "5a61b003-0000-4000-8000-000000000014",
@@ -363,7 +375,10 @@
         "options": {}
       },
       "executeOnce": true,
-      "alwaysOutputData": true
+      "alwaysOutputData": true,
+      "retryOnFail": true,
+      "maxTries": 3,
+      "waitBetweenTries": 5000
     },
     {
       "id": "5a61b003-0000-4000-8000-000000000015",

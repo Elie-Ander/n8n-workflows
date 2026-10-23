@@ -242,7 +242,10 @@
           "timeout": 15000
         }
       },
-      "onError": "continueRegularOutput"
+      "onError": "continueRegularOutput",
+      "retryOnFail": true,
+      "maxTries": 3,
+      "waitBetweenTries": 5000
     },
     {
       "id": "bc0882a5-82c7-4475-803b-9fdeebb7e82c",
@@ -275,7 +278,10 @@
         "options": {
           "systemPromptTemplate": "Tu écris une séquence de prospection B2B en français, au vouvoiement. Règles : 90 mots au plus par message ; une accroche précise tirée du contexte ou du site, jamais générique ; une seule question par message ; aucun lien, aucune pièce jointe, aucun superlatif ; pas de tiret cadratin. Chaque message commence par « Bonjour » suivi du prénom et se termine par la signature fournie. N'invente aucun fait sur l'entreprise."
         }
-      }
+      },
+      "retryOnFail": true,
+      "maxTries": 3,
+      "waitBetweenTries": 5000
     },
     {
       "id": "2cd45504-fb5f-4bd5-8079-b2eef1e0db4e",
@@ -315,7 +321,10 @@
         "options": {
           "appendAttribution": false
         }
-      }
+      },
+      "retryOnFail": true,
+      "maxTries": 3,
+      "waitBetweenTries": 5000
     },
     {
       "id": "0bf5c83d-4a0a-48d9-a601-b87690936d4b",
@@ -402,7 +411,10 @@
             }
           ]
         }
-      }
+      },
+      "retryOnFail": true,
+      "maxTries": 3,
+      "waitBetweenTries": 5000
     },
     {
       "id": "b7b589bb-c1c6-49e3-88e9-1b29f26f4313",
@@ -434,7 +446,10 @@
         "threadId": "={{ $('Envoyer le premier message').item.json.threadId }}",
         "simple": true,
         "options": {}
-      }
+      },
+      "retryOnFail": true,
+      "maxTries": 3,
+      "waitBetweenTries": 5000
     },
     {
       "id": "1c93a557-fbd7-43f4-b740-e0f66471719d",
@@ -511,7 +526,10 @@
             }
           ]
         }
-      }
+      },
+      "retryOnFail": true,
+      "maxTries": 3,
+      "waitBetweenTries": 5000
     },
     {
       "id": "31bf8e94-a540-480a-ab57-ccd44ef699de",
@@ -531,7 +549,10 @@
           "appendAttribution": false,
           "parse_mode": "HTML"
         }
-      }
+      },
+      "retryOnFail": true,
+      "maxTries": 3,
+      "waitBetweenTries": 5000
     },
     {
       "id": "451c44e9-c582-4d1f-a712-7fea3ecad8cd",
@@ -549,7 +570,10 @@
         "emailType": "text",
         "message": "={{ $('Écrire la séquence').item.json.output.message_2 }}",
         "options": {}
-      }
+      },
+      "retryOnFail": true,
+      "maxTries": 3,
+      "waitBetweenTries": 5000
     },
     {
       "id": "ba20dce9-e219-4155-b6d8-553ee6b20746",
@@ -581,7 +605,10 @@
         "threadId": "={{ $('Envoyer le premier message').item.json.threadId }}",
         "simple": true,
         "options": {}
-      }
+      },
+      "retryOnFail": true,
+      "maxTries": 3,
+      "waitBetweenTries": 5000
     },
     {
       "id": "37a639c3-448e-4c55-ae48-425556264961",
@@ -629,7 +656,10 @@
         "emailType": "text",
         "message": "={{ $('Écrire la séquence').item.json.output.message_3 }}",
         "options": {}
-      }
+      },
+      "retryOnFail": true,
+      "maxTries": 3,
+      "waitBetweenTries": 5000
     },
     {
       "id": "9756d721-5f2d-42b4-9aa6-1bde6126c5bc",
@@ -686,7 +716,10 @@
             }
           ]
         }
-      }
+      },
+      "retryOnFail": true,
+      "maxTries": 3,
+      "waitBetweenTries": 5000
     }
   ],
   "connections": {

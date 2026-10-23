@@ -8,7 +8,7 @@ Posez vos questions de marketing en français. Claude va chercher les chiffres l
 
 1. **La question.** Le chat est réservé aux comptes de votre n8n.
 2. **Claude cherche les chiffres.** Il choisit la bonne requête, lit les résultats et répond avec la période et la source. Aucun chiffre de mémoire.
-3. **Si ça coince.** Une connexion en panne donne un message clair.
+3. **Si ça coince.** Trois tentatives à 5 secondes d'écart, puis un message clair si la panne dure.
 
 ## Pour l'installer
 

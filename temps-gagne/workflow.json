@@ -162,7 +162,10 @@
         },
         "options": {}
       },
-      "executeOnce": true
+      "executeOnce": true,
+      "retryOnFail": true,
+      "maxTries": 3,
+      "waitBetweenTries": 5000
     },
     {
       "id": "97dbe75c-3650-4d31-b1c4-a82bae463eff",
@@ -179,7 +182,10 @@
         "returnAll": true,
         "filters": {}
       },
-      "executeOnce": true
+      "executeOnce": true,
+      "retryOnFail": true,
+      "maxTries": 3,
+      "waitBetweenTries": 5000
     },
     {
       "id": "f18a9125-7db3-493a-9351-2e690484fb5f",
@@ -271,7 +277,10 @@
             }
           ]
         }
-      }
+      },
+      "retryOnFail": true,
+      "maxTries": 3,
+      "waitBetweenTries": 5000
     },
     {
       "id": "ca655d64-83be-420e-b9ca-7cea56fe1518",
@@ -292,7 +301,10 @@
         "options": {
           "appendAttribution": false
         }
-      }
+      },
+      "retryOnFail": true,
+      "maxTries": 3,
+      "waitBetweenTries": 5000
     },
     {
       "id": "0cc0c8fa-eb8d-40c3-b578-9222614cee77",

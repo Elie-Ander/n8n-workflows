@@ -140,7 +140,10 @@
           "enableStreaming": false
         }
       },
-      "onError": "continueErrorOutput"
+      "onError": "continueErrorOutput",
+      "retryOnFail": true,
+      "maxTries": 3,
+      "waitBetweenTries": 5000
     },
     {
       "id": "6829e196-08bf-42ee-a3b8-d95eb23f3b8d",

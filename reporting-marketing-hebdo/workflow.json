@@ -406,7 +406,10 @@
       },
       "executeOnce": true,
       "alwaysOutputData": true,
-      "onError": "continueRegularOutput"
+      "onError": "continueRegularOutput",
+      "retryOnFail": true,
+      "maxTries": 3,
+      "waitBetweenTries": 5000
     },
     {
       "id": "c5ca2310-9432-488f-8ad6-2749d5e094fa",
@@ -429,7 +432,10 @@
       },
       "executeOnce": true,
       "alwaysOutputData": true,
-      "onError": "continueRegularOutput"
+      "onError": "continueRegularOutput",
+      "retryOnFail": true,
+      "maxTries": 3,
+      "waitBetweenTries": 5000
     },
     {
       "id": "ec66c717-65bd-45b4-adee-ab9280766010",
@@ -457,7 +463,10 @@
       },
       "executeOnce": true,
       "alwaysOutputData": true,
-      "onError": "continueRegularOutput"
+      "onError": "continueRegularOutput",
+      "retryOnFail": true,
+      "maxTries": 3,
+      "waitBetweenTries": 5000
     },
     {
       "id": "be2aeb60-1ab5-4e45-a3bc-7fd0c8d1efed",
@@ -578,7 +587,10 @@
           "appendAttribution": false,
           "senderName": "Reporting marketing"
         }
-      }
+      },
+      "retryOnFail": true,
+      "maxTries": 3,
+      "waitBetweenTries": 5000
     },
     {
       "id": "7e9e8824-9db5-403f-a052-eb4a21c0fada",
@@ -778,7 +790,10 @@
         },
         "options": {}
       },
-      "onError": "continueRegularOutput"
+      "onError": "continueRegularOutput",
+      "retryOnFail": true,
+      "maxTries": 3,
+      "waitBetweenTries": 5000
     },
     {
       "id": "5812304a-2f18-468f-961a-5e664c7e7e81",

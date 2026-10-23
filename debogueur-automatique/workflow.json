@@ -330,7 +330,7 @@
         3328,
         0
       ],
-      "retryOnFail": true,
+      "retryOnFail": false,
       "maxTries": 3,
       "waitBetweenTries": 3000,
       "onError": "continueErrorOutput"
