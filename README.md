@@ -38,8 +38,8 @@ Chacun est prêt à importer. Dans n8n, des notes de couleur expliquent chaque �
 
 | Workflow | Ce qu'il fait | Outils |
 |---|---|---|
-| [Point recrutement du lundi](point-recrutement-lundi/) | Calcule chaque lundi l'entonnoir, les délais et les candidats bloqués, fait rédiger le point par Claude sans qu'il invente un chiffre, l'envoie par e-mail et crée les relances dans Notion | Tables n8n, Claude, Gmail, Notion |
-| [Demandes au Legal](demandes-legal/) | Reçoit les demandes par un formulaire web, les fait classer par Claude, fixe l'urgence par des règles écrites, crée la fiche Notion, donne son délai au demandeur et relance avant l'échéance | Claude, Notion, Telegram |
+| [Point recrutement du lundi](point-recrutement-lundi/) | Calcule chaque lundi l'entonnoir, les délais et les candidats bloqués, fait rédiger le point par Claude sans qu'il invente un chiffre, l'envoie par e-mail et dans Slack, et crée les relances dans Notion | Tables n8n, Claude, Gmail, Slack, Notion |
+| [Demandes au Legal](demandes-legal/) | Reçoit les demandes par un formulaire web, les fait classer par Claude, fixe l'urgence par des règles écrites, crée la fiche Notion, donne son délai au demandeur, prévient le Legal dans Slack et relance avant l'échéance | Claude, Notion, Slack |
 
 ### Documents, IA et fiabilité
 

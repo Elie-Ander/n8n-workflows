@@ -53,8 +53,8 @@
             },
             {
               "id": "l1",
-              "name": "chat_telegram",
-              "value": "",
+              "name": "canal_slack",
+              "value": "ID_DU_CANAL_SLACK",
               "type": "string"
             }
           ]
@@ -151,20 +151,28 @@
     {
       "id": "be487cd4-90b2-4023-9f17-67a9ae7f38fe",
       "name": "Prévenir le Legal",
-      "type": "n8n-nodes-base.telegram",
-      "typeVersion": 1.2,
+      "type": "n8n-nodes-base.slack",
+      "typeVersion": 2.7,
       "position": [
         1628,
         300
       ],
       "parameters": {
         "resource": "message",
-        "operation": "sendMessage",
-        "chatId": "={{ $('Configuration').first().json.chat_telegram }}",
-        "text": "=<b>Nouvelle demande au Legal</b>\n{{ $('Fixer l\\'urgence et le responsable').first().json.resume }}\n\nÉquipe : {{ $('Fixer l\\'urgence et le responsable').first().json.equipe }}, de {{ $('Fixer l\\'urgence et le responsable').first().json.prenom }}\nType : {{ $('Fixer l\\'urgence et le responsable').first().json.type }}\nUrgence : {{ $('Fixer l\\'urgence et le responsable').first().json.urgence }}, réponse sous {{ $('Fixer l\\'urgence et le responsable').first().json.delai }}\nResponsable : {{ $('Fixer l\\'urgence et le responsable').first().json.responsable }}\n{{ $('Fixer l\\'urgence et le responsable').first().json.informations_manquantes ? 'À demander : ' + $('Fixer l\\'urgence et le responsable').first().json.informations_manquantes : '' }}\n\n<a href=\"{{ $json.url }}\">Ouvrir la fiche dans Notion</a>",
-        "additionalFields": {
-          "appendAttribution": false,
-          "parse_mode": "HTML"
+        "operation": "post",
+        "authentication": "accessToken",
+        "select": "channel",
+        "channelId": {
+          "__rl": true,
+          "mode": "id",
+          "value": "={{ $('Configuration').first().json.canal_slack }}"
+        },
+        "messageType": "text",
+        "text": "=*Nouvelle demande au Legal*\n{{ $('Fixer l\\'urgence et le responsable').first().json.resume }}\n\nÉquipe : {{ $('Fixer l\\'urgence et le responsable').first().json.equipe }}, de {{ $('Fixer l\\'urgence et le responsable').first().json.prenom }}\nType : {{ $('Fixer l\\'urgence et le responsable').first().json.type }}\nUrgence : *{{ $('Fixer l\\'urgence et le responsable').first().json.urgence }}*, réponse sous {{ $('Fixer l\\'urgence et le responsable').first().json.delai }}\nResponsable : {{ $('Fixer l\\'urgence et le responsable').first().json.responsable }}{{ $('Fixer l\\'urgence et le responsable').first().json.informations_manquantes ? '\\nÀ demander : ' + $('Fixer l\\'urgence et le responsable').first().json.informations_manquantes : '' }}\n\n<{{ $json.url }}|Ouvrir la fiche dans Notion>",
+        "otherOptions": {
+          "includeLinkToWorkflow": false,
+          "mrkdwn": true,
+          "unfurl_links": false
         }
       },
       "onError": "continueRegularOutput",
@@ -210,8 +218,8 @@
           "assignments": [
             {
               "id": "r1",
-              "name": "chat_telegram",
-              "value": "",
+              "name": "canal_slack",
+              "value": "ID_DU_CANAL_SLACK",
               "type": "string"
             },
             {
@@ -281,20 +289,28 @@
     {
       "id": "96ec661e-d327-40c4-ae01-82d032b3beb4",
       "name": "Relancer le responsable",
-      "type": "n8n-nodes-base.telegram",
-      "typeVersion": 1.2,
+      "type": "n8n-nodes-base.slack",
+      "typeVersion": 2.7,
       "position": [
         896,
         860
       ],
       "parameters": {
         "resource": "message",
-        "operation": "sendMessage",
-        "chatId": "={{ $('Configuration des relances').first().json.chat_telegram }}",
-        "text": "=<b>Relance Legal</b> pour {{ $json.responsable }}\n{{ $json.demande }}\n{{ $json.jours < 0 ? 'Échéance dépassée de ' + (-$json.jours) + ' jour(s)' : ($json.jours === 0 ? \"Échéance aujourd'hui\" : 'Échéance dans ' + $json.jours + ' jour(s)') }}, urgence {{ $json.urgence.toLowerCase() }}\n<a href=\"{{ $json.url }}\">Ouvrir la fiche</a>",
-        "additionalFields": {
-          "appendAttribution": false,
-          "parse_mode": "HTML"
+        "operation": "post",
+        "authentication": "accessToken",
+        "select": "channel",
+        "channelId": {
+          "__rl": true,
+          "mode": "id",
+          "value": "={{ $('Configuration des relances').first().json.canal_slack }}"
+        },
+        "messageType": "text",
+        "text": "=*Relance Legal* pour {{ $json.responsable }}\n{{ $json.demande }}\n{{ $json.jours < 0 ? 'Échéance dépassée de ' + (-$json.jours) + ' jour(s)' : ($json.jours === 0 ? \"Échéance aujourd'hui\" : 'Échéance dans ' + $json.jours + ' jour(s)') }}, urgence {{ $json.urgence.toLowerCase() }}\n<{{ $json.url }}|Ouvrir la fiche>",
+        "otherOptions": {
+          "includeLinkToWorkflow": false,
+          "mrkdwn": true,
+          "unfurl_links": false
         }
       },
       "onError": "continueRegularOutput",
@@ -312,7 +328,7 @@
         -210
       ],
       "parameters": {
-        "content": "## Demandes au Legal\nPar **Elie LISSODA**, automatisation et IA · [elie.koudujob.com](https://elie.koudujob.com)\n\nUne demande au Legal arrive d'un formulaire web. Claude la range et la résume, le code fixe l'urgence et le responsable, une fiche Notion la suit, le demandeur connaît tout de suite son délai de réponse et le Legal est prévenu. Chaque matin, une relance part avant les échéances.\n\nPour le lancer : la base Notion des demandes (le workflow « Préparer Notion » la crée), les connexions Notion, Claude et Telegram, puis l'adresse du webhook dans le formulaire fourni avec ce workflow.\n\nUne question ? Je suis disponible sur [elie.koudujob.com](https://elie.koudujob.com) 😉",
+        "content": "## Demandes au Legal\nPar **Elie LISSODA**, automatisation et IA · [elie.koudujob.com](https://elie.koudujob.com)\n\nUne demande au Legal arrive d'un formulaire web. Claude la range et la résume, le code fixe l'urgence et le responsable, une fiche Notion la suit, le demandeur connaît tout de suite son délai de réponse et le Legal est prévenu dans Slack. Chaque matin, une relance part avant les échéances.\n\nPour le lancer : la base Notion des demandes (le workflow « Préparer Notion » la crée), les connexions Notion, Claude et Slack, l'identifiant du canal Slack dans les deux nœuds de configuration, puis l'adresse du webhook dans le formulaire fourni avec ce workflow.\n\nUne question ? Je suis disponible sur [elie.koudujob.com](https://elie.koudujob.com) 😉",
         "color": 2,
         "width": 640,
         "height": 300
@@ -424,7 +440,7 @@
         150
       ],
       "parameters": {
-        "content": "### 8. Prévenir\nSur Telegram, ou dans Slack en changeant ce nœud.",
+        "content": "### 8. Prévenir\nUn message dans le canal Slack du Legal, avec le lien de la fiche.",
         "color": 4,
         "width": 210,
         "height": 130
@@ -488,7 +504,7 @@
         710
       ],
       "parameters": {
-        "content": "### D. Relancer\nLe responsable, avec le lien de la fiche.",
+        "content": "### D. Relancer\nLe responsable, dans Slack, avec le lien de la fiche.",
         "color": 3,
         "width": 210,
         "height": 130

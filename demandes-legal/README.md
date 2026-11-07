@@ -14,20 +14,20 @@ Les questions au Legal arrivent par Slack, par mail, entre deux portes. Ce workf
 4. **Trancher.** Le code, pas l'IA, fixe l'urgence et le responsable avec des règles lisibles : un litige ou une échéance à deux jours passe en urgence haute, réponse sous 24 heures. Les données personnelles et les contrats de travail passent en urgence moyenne.
 5. **Suivre.** Une fiche Notion par demande : type, urgence, responsable, échéance, statut.
 6. **Répondre.** Le formulaire affiche au demandeur son délai, son responsable et ce qu'il peut envoyer pour aller plus vite.
-7. **Prévenir.** Le Legal reçoit l'alerte sur Telegram, avec le lien de la fiche.
-8. **Relancer.** Chaque matin à 9 h, une demande ouverte dont l'échéance tombe dans les deux jours, ou est dépassée, déclenche une relance au responsable.
+7. **Prévenir.** Le Legal reçoit l'alerte dans son canal Slack, avec le lien de la fiche.
+8. **Relancer.** Chaque matin à 9 h, une demande ouverte dont l'échéance tombe dans les deux jours, ou est dépassée, déclenche une relance au responsable, dans le même canal Slack.
 
-Testé avec des demandes fictives envoyées depuis le formulaire : fiche Notion, alerte et réponse affichée en moins de 10 secondes.
+Testé avec des demandes fictives envoyées depuis le formulaire : fiche Notion, alerte Slack et réponse affichée en moins de 10 secondes.
 
 ## Pour l'installer
 
-1. Créez un identifiant Notion (intégration interne), un identifiant Anthropic et un identifiant Telegram.
+1. Créez un identifiant Notion (intégration interne), un identifiant Anthropic et un identifiant Slack : une app Slack avec les droits `chat:write`, `chat:write.public` et `channels:read`, installée dans votre espace, dont vous collez le jeton du bot (il commence par `xoxb-`).
 2. Importez `preparer-notion.workflow.json`. Partagez une page Notion avec votre intégration, collez son identifiant dans Configuration et lancez-le une fois : il crée la base « Demandes au Legal ».
-3. Importez `workflow.json`. Dans Configuration, collez l'identifiant de la base et votre identifiant de conversation Telegram. Faites de même dans « Configuration des relances ».
+3. Importez `workflow.json`. Dans Configuration, collez l'identifiant de la base et l'identifiant du canal Slack du Legal (dans Slack : clic droit sur le canal, Copier le lien, puis la fin du lien qui commence par C). Faites de même dans « Configuration des relances ».
 4. Dans « Recevoir la demande », remplacez `https://votre-site.fr` par l'adresse du site qui hébergera le formulaire, puis publiez le workflow.
 5. Dans `formulaire/index.html`, remplacez `https://VOTRE-N8N/webhook/demande-legal` par l'adresse de production du webhook, puis mettez la page en ligne.
 
-Chaque demande consomme un appel à Claude, facturé sur votre compte Anthropic. Pour prévenir le Legal dans Slack, remplacez les deux nœuds Telegram.
+Chaque demande consomme un appel à Claude, facturé sur votre compte Anthropic. Le canal doit être public, ou l'app doit y être invitée.
 
 ---
 

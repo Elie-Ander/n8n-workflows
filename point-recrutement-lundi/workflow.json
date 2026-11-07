@@ -69,6 +69,12 @@
               "name": "seuil_relance_jours",
               "value": 10,
               "type": "number"
+            },
+            {
+              "id": "c6",
+              "name": "canal_slack",
+              "value": "ID_DU_CANAL_SLACK",
+              "type": "string"
             }
           ]
         }
@@ -304,7 +310,7 @@
         -330
       ],
       "parameters": {
-        "content": "## Point recrutement du lundi\nPar **Elie LISSODA**, automatisation et IA · [elie.koudujob.com](https://elie.koudujob.com)\n\nChaque lundi, l'équipe recrutement reçoit son point : ce qui a bougé, ce qui bloque, trois décisions. Le code calcule tous les chiffres, Claude rédige sans en inventer. Les candidats en attente deviennent des tâches Notion, assignées au bon recruteur, sans doublon.\n\nPour le lancer : la table « Candidatures » (le workflow « Charger les exemples » la remplit de 423 candidatures fictives), la base Notion des relances (« Préparer Notion »), les connexions Notion, Claude et Gmail.\n\nUne question ? Je suis disponible sur [elie.koudujob.com](https://elie.koudujob.com) 😉",
+        "content": "## Point recrutement du lundi\nPar **Elie LISSODA**, automatisation et IA · [elie.koudujob.com](https://elie.koudujob.com)\n\nChaque lundi, l'équipe recrutement reçoit son point : ce qui a bougé, ce qui bloque, trois décisions. Il arrive par mail et en bref dans Slack. Le code calcule tous les chiffres, Claude rédige sans en inventer. Les candidats en attente deviennent des tâches Notion, assignées au bon recruteur, sans doublon.\n\nPour le lancer : la table « Candidatures » (le workflow « Charger les exemples » la remplit de 423 candidatures fictives), la base Notion des relances (« Préparer Notion »), les connexions Notion, Claude, Gmail et Slack, et l'identifiant du canal Slack dans Configuration.\n\nUne question ? Je suis disponible sur [elie.koudujob.com](https://elie.koudujob.com) 😉",
         "color": 2,
         "width": 600,
         "height": 290
@@ -416,7 +422,7 @@
         40
       ],
       "parameters": {
-        "content": "### 7. Envoyer\nPar mail, ou dans Slack en changeant ce nœud.",
+        "content": "### 7. Envoyer\nLe point complet par mail.",
         "color": 4,
         "width": 210,
         "height": 130
@@ -467,6 +473,69 @@
         "content": "### 10. Créer les tâches\nUne relance par candidat bloqué, assignée au recruteur.",
         "color": 4,
         "width": 210,
+        "height": 130
+      }
+    },
+    {
+      "id": "b6c1f0de-5a41-4f7e-9d0a-1f2c3d4e5f61",
+      "name": "Préparer le message Slack",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1628,
+        200
+      ],
+      "parameters": {
+        "mode": "runOnceForAllItems",
+        "language": "javaScript",
+        "jsCode": "// Le point du lundi en bref pour Slack : les chiffres du code, le texte de Claude, le lien des relances.\nconst k = $('Calculer les indicateurs').first().json;\nconst conf = $('Configuration').first().json;\nconst html = ($('Rédiger le point du lundi').first().json.text || '').replace(/```html|```/g, '').trim();\nconst brut = html\n  .replace(new RegExp('<h3[^>]*>([^<]*)</h3>', 'gi'), '\\n*$1*\\n')\n  .replace(new RegExp('<li[^>]*>', 'gi'), '\\n• ')\n  .replace(new RegExp('</(li|p)>', 'gi'), '\\n')\n  .replace(new RegExp('<[^>]+>', 'g'), '')\n  .replace(/&nbsp;/g, ' ').replace(/&amp;/g, '&');\n// Une ligne par information, une ligne vide seulement avant chaque titre\nconst lignes = brut.split('\\n').map((l) => l.trim()).filter(Boolean);\nconst texte = lignes.map((l, i) => (l.startsWith('*') && i ? '\\n' + l : l)).join('\\n');\nconst date = k.date_du_point.split('-').reverse().join('/');\nconst message = '*Point recrutement du lundi ' + date + '*\\n'\n  + k.total + ' candidatures sur 12 semaines, ' + k.en_cours + ' en cours, ' + k.embauches + ' embauches, ' + k.delai_embauche + \" jours en moyenne jusqu'à l'embauche.\\n\\n\"\n  + texte + '\\n\\n'\n  + k.relances.length + ' relances créées dans Notion : <' + conf.lien_relances + '|ouvrir les relances>';\nreturn [{ json: { message } }];"
+      }
+    },
+    {
+      "id": "c7d2a1ef-6b52-4a8f-8e1b-2a3d4e5f6a72",
+      "name": "Envoyer le point dans Slack",
+      "type": "n8n-nodes-base.slack",
+      "typeVersion": 2.7,
+      "position": [
+        1852,
+        200
+      ],
+      "parameters": {
+        "resource": "message",
+        "operation": "post",
+        "authentication": "accessToken",
+        "select": "channel",
+        "channelId": {
+          "__rl": true,
+          "mode": "id",
+          "value": "={{ $('Configuration').first().json.canal_slack }}"
+        },
+        "messageType": "text",
+        "text": "={{ $json.message }}",
+        "otherOptions": {
+          "includeLinkToWorkflow": false,
+          "mrkdwn": true,
+          "unfurl_links": false
+        }
+      },
+      "onError": "continueRegularOutput",
+      "retryOnFail": true,
+      "maxTries": 2,
+      "waitBetweenTries": 5000
+    },
+    {
+      "id": "d8e3b2f0-7c63-4b9a-9f2c-3b4e5f6a7b83",
+      "name": "Étape 7 bis",
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        1578,
+        40
+      ],
+      "parameters": {
+        "content": "### 7 bis. Slack\nLe point en bref dans le canal du recrutement, avec le lien des relances.",
+        "color": 4,
+        "width": 420,
         "height": 130
       }
     }
@@ -581,6 +650,28 @@
         [
           {
             "node": "Créer la tâche de relance dans Notion",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Préparer le message Slack": {
+      "main": [
+        [
+          {
+            "node": "Envoyer le point dans Slack",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Envoyer le point du lundi": {
+      "main": [
+        [
+          {
+            "node": "Préparer le message Slack",
             "type": "main",
             "index": 0
           }
