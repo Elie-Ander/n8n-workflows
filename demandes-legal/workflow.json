@@ -1,0 +1,765 @@
+{
+  "name": "Demandes au Legal",
+  "nodes": [
+    {
+      "id": "9eb462d7-0e44-476d-bc94-c8737d0d2bf7",
+      "name": "Configuration",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        224,
+        300
+      ],
+      "parameters": {
+        "mode": "manual",
+        "includeOtherFields": false,
+        "assignments": {
+          "assignments": [
+            {
+              "id": "l3",
+              "name": "prenom",
+              "value": "={{ String($json.body.prenom || '').trim().slice(0, 60) }}",
+              "type": "string"
+            },
+            {
+              "id": "l4",
+              "name": "equipe",
+              "value": "={{ ['Sales','Care','Marketing','People','Tech','Produit','Finance','Autre'].includes($json.body.equipe) ? $json.body.equipe : 'Autre' }}",
+              "type": "string"
+            },
+            {
+              "id": "l5",
+              "name": "demande",
+              "value": "={{ String($json.body.demande || '').trim().slice(0, 2000) }}",
+              "type": "string"
+            },
+            {
+              "id": "l6",
+              "name": "echeance",
+              "value": "={{ /^\\d{4}-\\d{2}-\\d{2}$/.test($json.body.echeance || '') ? $json.body.echeance : '' }}",
+              "type": "string"
+            },
+            {
+              "id": "l7",
+              "name": "document",
+              "value": "={{ String($json.body.document || '').trim().slice(0, 300) }}",
+              "type": "string"
+            },
+            {
+              "id": "l8",
+              "name": "id_base",
+              "value": "ID_DE_VOTRE_BASE_NOTION",
+              "type": "string"
+            },
+            {
+              "id": "l1",
+              "name": "chat_telegram",
+              "value": "",
+              "type": "string"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "id": "f380b165-6519-4d35-9e4a-eed5ecd90928",
+      "name": "Qualifier la demande",
+      "type": "@n8n/n8n-nodes-langchain.chainLlm",
+      "typeVersion": 1.9,
+      "position": [
+        672,
+        300
+      ],
+      "parameters": {
+        "promptType": "define",
+        "text": "=Tu aides l'équipe Legal d'une entreprise du numérique à trier les demandes internes. Tu ne donnes aucun avis juridique : tu ranges et tu résumes.\n\nDemande : {{ $json.demande }}\nÉquipe : {{ $json.equipe }}\nÉchéance souhaitée : {{ $json.echeance || 'non précisée' }}\nDocument : {{ $json.document || 'aucun' }}\n\nRéponds uniquement par un objet JSON valide, sans texte autour, avec ces clés :\n\"type\" : une valeur parmi \"Contrat client\", \"Contrat fournisseur ou partenaire\", \"Contrat de travail et RH\", \"Données personnelles (RGPD)\", \"Litige ou réclamation\", \"Question juridique simple\" ;\n\"resume\" : un titre de 8 mots au plus, en français correct (accords, articles), qui commence par une majuscule et que le Legal comprend sans lire la demande ;\n\"informations_manquantes\" : ce que le Legal devra demander pour traiter la demande, en une phrase, ou une chaîne vide ;\n\"urgence_proposee\" : \"Haute\", \"Moyenne\" ou \"Basse\" ;\n\"raison\" : une phrase ;\n\"donnees_personnelles\" : true ou false.\nÉcris en français, sans tiret cadratin."
+      },
+      "retryOnFail": true,
+      "maxTries": 3,
+      "waitBetweenTries": 5000
+    },
+    {
+      "id": "d8806b81-e525-45e8-9ab8-a541e2829cf8",
+      "name": "Claude",
+      "type": "@n8n/n8n-nodes-langchain.lmChatAnthropic",
+      "typeVersion": 1.6,
+      "position": [
+        672,
+        480
+      ],
+      "parameters": {
+        "model": {
+          "__rl": true,
+          "mode": "list",
+          "value": "claude-sonnet-5",
+          "cachedResultName": "Claude Sonnet 5"
+        },
+        "options": {
+          "maxTokensToSample": 1500
+        }
+      }
+    },
+    {
+      "id": "fdf8d4c4-38d8-411a-b8a8-e05988dbd171",
+      "name": "Fixer l'urgence et le responsable",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        956,
+        300
+      ],
+      "parameters": {
+        "mode": "runOnceForAllItems",
+        "language": "javaScript",
+        "jsCode": "// L'IA range et résume. Le code tranche : l'urgence et le responsable suivent des règles fixes et vérifiables.\nconst f = $('Configuration').first().json;\nconst brut = ($input.first().json.text || '').replace(/```json|```/g, '').trim();\nlet ia = {};\ntry { ia = JSON.parse(brut.slice(brut.indexOf('{'), brut.lastIndexOf('}') + 1)); } catch (e) { ia = {}; }\nconst TYPES = ['Contrat client', 'Contrat fournisseur ou partenaire', 'Contrat de travail et RH', 'Données personnelles (RGPD)', 'Litige ou réclamation', 'Question juridique simple'];\nconst type = TYPES.includes(ia.type) ? ia.type : 'Question juridique simple';\nconst echeance = f.echeance || '';\nconst aujourdhui = new Date(new Date().toISOString().slice(0, 10) + 'T00:00:00Z');\nconst joursRestants = echeance ? Math.round((new Date(echeance + 'T00:00:00Z') - aujourdhui) / 86400000) : null;\n// Règles d'urgence : Haute = litige ou échéance dans 2 jours au plus ; Moyenne = échéance dans 7 jours au plus, données personnelles ou contrat de travail ; Basse sinon\nlet urgence = 'Basse';\nif (type === 'Litige ou réclamation' || (joursRestants !== null && joursRestants <= 2)) urgence = 'Haute';\nelse if ((joursRestants !== null && joursRestants <= 7) || type === 'Données personnelles (RGPD)' || ia.donnees_personnelles === true || type === 'Contrat de travail et RH') urgence = 'Moyenne';\nconst RESPONSABLE = { 'Litige ou réclamation': 'Head of Legal', 'Données personnelles (RGPD)': 'Head of Legal', 'Contrat de travail et RH': 'Juriste', 'Contrat client': 'Juriste', 'Contrat fournisseur ou partenaire': 'Juriste', 'Question juridique simple': 'Réponse type' };\nconst DELAI = { Haute: '24 heures', Moyenne: '3 jours ouvrés', Basse: '5 jours ouvrés' };\nlet manque = (ia.informations_manquantes || '').trim();\nif (manque && !/[.!?]$/.test(manque)) manque += '.';\nlet resume = (ia.resume || f.demande.slice(0, 60)).trim().replace(/[.]$/, '');\nresume = resume.charAt(0).toUpperCase() + resume.slice(1);\nreturn [{ json: {\n  prenom: f.prenom, equipe: f.equipe, demande: f.demande, document: f.document,\n  echeance: echeance || null, jours_restants: joursRestants, type, resume, urgence, avis_ia: ia.urgence_proposee || '', raison: ia.raison || '',\n  responsable: RESPONSABLE[type], delai: DELAI[urgence], informations_manquantes: manque, statut: manque ? \"En attente d'informations\" : 'Nouvelle',\n  recue_le: new Date().toISOString().slice(0, 10)\n} }];"
+      }
+    },
+    {
+      "id": "1a496477-d80a-4d80-b2e7-88ea569c17fb",
+      "name": "Créer la fiche dans Notion",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.5,
+      "position": [
+        1180,
+        300
+      ],
+      "parameters": {
+        "method": "POST",
+        "url": "https://api.notion.com/v1/pages",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "notionApi",
+        "sendHeaders": true,
+        "specifyHeaders": "keypair",
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Notion-Version",
+              "value": "2022-06-28"
+            }
+          ]
+        },
+        "sendBody": true,
+        "contentType": "json",
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({ parent: { database_id: $('Configuration').first().json.id_base }, properties: Object.assign({ \"Demande\": { title: [{ text: { content: $json.resume } }] }, \"Équipe\": { select: { name: $json.equipe || \"Autre\" } }, \"Demandeur\": { rich_text: [{ text: { content: $json.prenom } }] }, \"Type\": { select: { name: $json.type } }, \"Urgence\": { select: { name: $json.urgence } }, \"Responsable\": { select: { name: $json.responsable } }, \"Statut\": { select: { name: $json.statut } }, \"Informations manquantes\": { rich_text: [{ text: { content: $json.informations_manquantes } }] }, \"Description\": { rich_text: [{ text: { content: $json.demande.slice(0, 1900) } }] }, \"Reçue le\": { date: { start: $json.recue_le } } }, $json.echeance ? { \"Échéance\": { date: { start: $json.echeance } } } : {}) }) }}"
+      },
+      "onError": "continueRegularOutput",
+      "retryOnFail": true,
+      "maxTries": 3,
+      "waitBetweenTries": 5000
+    },
+    {
+      "id": "be487cd4-90b2-4023-9f17-67a9ae7f38fe",
+      "name": "Prévenir le Legal",
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1.2,
+      "position": [
+        1628,
+        300
+      ],
+      "parameters": {
+        "resource": "message",
+        "operation": "sendMessage",
+        "chatId": "={{ $('Configuration').first().json.chat_telegram }}",
+        "text": "=<b>Nouvelle demande au Legal</b>\n{{ $('Fixer l\\'urgence et le responsable').first().json.resume }}\n\nÉquipe : {{ $('Fixer l\\'urgence et le responsable').first().json.equipe }}, de {{ $('Fixer l\\'urgence et le responsable').first().json.prenom }}\nType : {{ $('Fixer l\\'urgence et le responsable').first().json.type }}\nUrgence : {{ $('Fixer l\\'urgence et le responsable').first().json.urgence }}, réponse sous {{ $('Fixer l\\'urgence et le responsable').first().json.delai }}\nResponsable : {{ $('Fixer l\\'urgence et le responsable').first().json.responsable }}\n{{ $('Fixer l\\'urgence et le responsable').first().json.informations_manquantes ? 'À demander : ' + $('Fixer l\\'urgence et le responsable').first().json.informations_manquantes : '' }}\n\n<a href=\"{{ $json.url }}\">Ouvrir la fiche dans Notion</a>",
+        "additionalFields": {
+          "appendAttribution": false,
+          "parse_mode": "HTML"
+        }
+      },
+      "onError": "continueRegularOutput",
+      "retryOnFail": true,
+      "maxTries": 2,
+      "waitBetweenTries": 5000
+    },
+    {
+      "id": "505945ae-df92-4a0d-b66c-d69251ee5e1d",
+      "name": "Chaque matin à 9 h",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.4,
+      "position": [
+        0,
+        860
+      ],
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "field": "days",
+              "daysInterval": 1,
+              "triggerAtHour": 9,
+              "triggerAtMinute": 0
+            }
+          ]
+        }
+      }
+    },
+    {
+      "id": "56acb5ac-7e11-4be4-b504-2d351e23a486",
+      "name": "Configuration des relances",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        224,
+        860
+      ],
+      "parameters": {
+        "mode": "manual",
+        "includeOtherFields": false,
+        "assignments": {
+          "assignments": [
+            {
+              "id": "r1",
+              "name": "chat_telegram",
+              "value": "",
+              "type": "string"
+            },
+            {
+              "id": "r2",
+              "name": "jours_avant_echeance",
+              "value": 2,
+              "type": "number"
+            },
+            {
+              "id": "r3",
+              "name": "id_base",
+              "value": "ID_DE_VOTRE_BASE_NOTION",
+              "type": "string"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "id": "afdbab52-6d3d-4093-b2c4-73b7858c6f8e",
+      "name": "Chercher les demandes ouvertes",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.5,
+      "position": [
+        448,
+        860
+      ],
+      "parameters": {
+        "method": "POST",
+        "url": "={{ 'https://api.notion.com/v1/databases/' + $json.id_base + '/query' }}",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "notionApi",
+        "sendHeaders": true,
+        "specifyHeaders": "keypair",
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Notion-Version",
+              "value": "2022-06-28"
+            }
+          ]
+        },
+        "sendBody": true,
+        "contentType": "json",
+        "specifyBody": "json",
+        "jsonBody": "{\"filter\":{\"and\":[{\"property\":\"Statut\",\"select\":{\"does_not_equal\":\"Traitée\"}},{\"property\":\"Échéance\",\"date\":{\"is_not_empty\":true}}]},\"page_size\":100}"
+      },
+      "retryOnFail": true,
+      "maxTries": 3,
+      "waitBetweenTries": 5000
+    },
+    {
+      "id": "388d38a1-f7a4-4a04-9cd0-e6a32976a744",
+      "name": "Repérer les échéances proches",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        672,
+        860
+      ],
+      "parameters": {
+        "mode": "runOnceForAllItems",
+        "language": "javaScript",
+        "jsCode": "// Une relance seulement si l'échéance tombe dans les 2 jours ou est dépassée\nconst conf = $('Configuration des relances').first().json;\nconst aujourdhui = new Date(new Date().toISOString().slice(0, 10) + 'T00:00:00Z');\nconst txt = (p) => ((p && (p.title || p.rich_text)) || []).map((t) => t.plain_text).join('');\nreturn ($input.first().json.results || []).map((p) => {\n  const pr = p.properties;\n  const ech = pr['Échéance']?.date?.start;\n  const jours = Math.round((new Date(ech + 'T00:00:00Z') - aujourdhui) / 86400000);\n  return { demande: txt(pr['Demande']), responsable: pr['Responsable']?.select?.name || 'Legal', urgence: pr['Urgence']?.select?.name || '', echeance: ech, jours, url: p.url };\n}).filter((d) => d.jours <= conf.jours_avant_echeance).sort((a, b) => a.jours - b.jours).map((d) => ({ json: d }));"
+      }
+    },
+    {
+      "id": "96ec661e-d327-40c4-ae01-82d032b3beb4",
+      "name": "Relancer le responsable",
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1.2,
+      "position": [
+        896,
+        860
+      ],
+      "parameters": {
+        "resource": "message",
+        "operation": "sendMessage",
+        "chatId": "={{ $('Configuration des relances').first().json.chat_telegram }}",
+        "text": "=<b>Relance Legal</b> pour {{ $json.responsable }}\n{{ $json.demande }}\n{{ $json.jours < 0 ? 'Échéance dépassée de ' + (-$json.jours) + ' jour(s)' : ($json.jours === 0 ? \"Échéance aujourd'hui\" : 'Échéance dans ' + $json.jours + ' jour(s)') }}, urgence {{ $json.urgence.toLowerCase() }}\n<a href=\"{{ $json.url }}\">Ouvrir la fiche</a>",
+        "additionalFields": {
+          "appendAttribution": false,
+          "parse_mode": "HTML"
+        }
+      },
+      "onError": "continueRegularOutput",
+      "retryOnFail": true,
+      "maxTries": 2,
+      "waitBetweenTries": 5000
+    },
+    {
+      "id": "474a5e58-edc9-4a93-9777-3e600b4fb3d8",
+      "name": "Présentation",
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        -60,
+        -210
+      ],
+      "parameters": {
+        "content": "## Demandes au Legal\nPar **Elie LISSODA**, automatisation et IA · [elie.koudujob.com](https://elie.koudujob.com)\n\nUne demande au Legal arrive d'un formulaire web. Claude la range et la résume, le code fixe l'urgence et le responsable, une fiche Notion la suit, le demandeur connaît tout de suite son délai de réponse et le Legal est prévenu. Chaque matin, une relance part avant les échéances.\n\nPour le lancer : la base Notion des demandes (le workflow « Préparer Notion » la crée), les connexions Notion, Claude et Telegram, puis l'adresse du webhook dans le formulaire fourni avec ce workflow.\n\nUne question ? Je suis disponible sur [elie.koudujob.com](https://elie.koudujob.com) 😉",
+        "color": 2,
+        "width": 640,
+        "height": 300
+      }
+    },
+    {
+      "id": "070193c3-ace8-4904-98e4-038f4ca87ecd",
+      "name": "Étape 1",
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        -60,
+        150
+      ],
+      "parameters": {
+        "content": "### 1. Recevoir\nLa demande arrive du formulaire web, par webhook.",
+        "color": 7,
+        "width": 210,
+        "height": 130
+      }
+    },
+    {
+      "id": "53d91ba2-cca6-45d7-9890-b7a29a7fe630",
+      "name": "Étape 2",
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        164,
+        150
+      ],
+      "parameters": {
+        "content": "### 2. Configuration\nLes champs du formulaire, la base Notion, où prévenir.",
+        "color": 1,
+        "width": 210,
+        "height": 130
+      }
+    },
+    {
+      "id": "001954d4-73ac-4808-a25a-ca9d068a7524",
+      "name": "Étape 4",
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        612,
+        150
+      ],
+      "parameters": {
+        "content": "### 4. Qualifier\nClaude range et résume. Aucun avis juridique.",
+        "color": 6,
+        "width": 210,
+        "height": 130
+      }
+    },
+    {
+      "id": "4100e40f-11b4-4730-9b6a-c59b77d0ed02",
+      "name": "Étape 5",
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        896,
+        150
+      ],
+      "parameters": {
+        "content": "### 5. Trancher\nLe code fixe l'urgence et le responsable : échéance, litige, données personnelles.",
+        "color": 1,
+        "width": 210,
+        "height": 130
+      }
+    },
+    {
+      "id": "6670a624-5ad1-46e0-837a-1ce2da3da702",
+      "name": "Étape 6",
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        1120,
+        150
+      ],
+      "parameters": {
+        "content": "### 6. Créer la fiche\nUne demande, une fiche Notion, un statut.",
+        "color": 4,
+        "width": 210,
+        "height": 130
+      }
+    },
+    {
+      "id": "223bd6aa-ed4f-4af5-9956-53580cd292d1",
+      "name": "Étape 7",
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        1344,
+        150
+      ],
+      "parameters": {
+        "content": "### 7. Répondre\nLe demandeur voit tout de suite son délai de réponse.",
+        "color": 4,
+        "width": 210,
+        "height": 130
+      }
+    },
+    {
+      "id": "556552dc-f3c7-4e0a-a170-7cbd16163d6e",
+      "name": "Étape 8",
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        1568,
+        150
+      ],
+      "parameters": {
+        "content": "### 8. Prévenir\nSur Telegram, ou dans Slack en changeant ce nœud.",
+        "color": 4,
+        "width": 210,
+        "height": 130
+      }
+    },
+    {
+      "id": "5f981fb7-945e-429c-92ba-9293b97afec0",
+      "name": "Étape A",
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        -60,
+        710
+      ],
+      "parameters": {
+        "content": "### A. Chaque matin\nLe contrôle des échéances.",
+        "color": 7,
+        "width": 434,
+        "height": 130
+      }
+    },
+    {
+      "id": "ed1da804-0e26-4879-9ff1-fe95399355d1",
+      "name": "Étape B",
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        388,
+        710
+      ],
+      "parameters": {
+        "content": "### B. Chercher\nLes demandes ouvertes, avec une échéance.",
+        "color": 5,
+        "width": 210,
+        "height": 130
+      }
+    },
+    {
+      "id": "2e2d6400-70bb-4083-ba7a-987513795532",
+      "name": "Étape C",
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        612,
+        710
+      ],
+      "parameters": {
+        "content": "### C. Repérer\nÉchéance dans deux jours ou dépassée.",
+        "color": 1,
+        "width": 210,
+        "height": 130
+      }
+    },
+    {
+      "id": "1cd0616d-fafb-4bef-8ca6-e73f889a7806",
+      "name": "Étape D",
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        836,
+        710
+      ],
+      "parameters": {
+        "content": "### D. Relancer\nLe responsable, avec le lien de la fiche.",
+        "color": 3,
+        "width": 210,
+        "height": 130
+      }
+    },
+    {
+      "id": "254084a2-ad40-4c80-b7a6-21afea28e08d",
+      "name": "Recevoir la demande",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2.1,
+      "position": [
+        0,
+        300
+      ],
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "demande-legal",
+        "authentication": "none",
+        "responseMode": "responseNode",
+        "options": {
+          "allowedOrigins": "https://votre-site.fr",
+          "ignoreBots": true
+        }
+      }
+    },
+    {
+      "id": "8fc9836a-94ee-4e0a-b0ef-e481db52827c",
+      "name": "Répondre au formulaire",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.5,
+      "position": [
+        1404,
+        300
+      ],
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ JSON.stringify({ ok: true, resume: $('Fixer l\\'urgence et le responsable').first().json.resume, type: $('Fixer l\\'urgence et le responsable').first().json.type, urgence: $('Fixer l\\'urgence et le responsable').first().json.urgence, delai: $('Fixer l\\'urgence et le responsable').first().json.delai, responsable: $('Fixer l\\'urgence et le responsable').first().json.responsable, statut: $('Fixer l\\'urgence et le responsable').first().json.statut, informations_manquantes: $('Fixer l\\'urgence et le responsable').first().json.informations_manquantes, echeance: $('Fixer l\\'urgence et le responsable').first().json.echeance, fiche_creee: !!$json.id }) }}",
+        "options": {
+          "responseCode": 200
+        }
+      }
+    },
+    {
+      "id": "8c36fee8-2ef3-473c-a452-99cd063487c4",
+      "name": "Vérifier la demande",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        448,
+        300
+      ],
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "loose",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "v1",
+              "leftValue": "={{ $json.prenom }}",
+              "rightValue": "",
+              "operator": {
+                "type": "string",
+                "operation": "notEmpty",
+                "singleValue": true
+              }
+            },
+            {
+              "id": "v2",
+              "leftValue": "={{ $json.demande.length }}",
+              "rightValue": 15,
+              "operator": {
+                "type": "number",
+                "operation": "gte"
+              }
+            },
+            {
+              "id": "v3",
+              "leftValue": "={{ String($('Recevoir la demande').first().json.body.site_web || '') }}",
+              "rightValue": "",
+              "operator": {
+                "type": "string",
+                "operation": "empty",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      }
+    },
+    {
+      "id": "83cdd24b-e2da-4cc1-b313-0ba49e02f081",
+      "name": "Refuser l'envoi",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.5,
+      "position": [
+        956,
+        540
+      ],
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ JSON.stringify({ ok: false, erreur: 'Indiquez votre prénom et décrivez votre demande en une ou deux phrases.' }) }}",
+        "options": {
+          "responseCode": 400
+        }
+      }
+    },
+    {
+      "id": "88221e90-7af9-4962-8620-317ff4451a6a",
+      "name": "Étape 3",
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        388,
+        150
+      ],
+      "parameters": {
+        "content": "### 3. Vérifier\nUn envoi vide ou automatique s'arrête ici, avant Claude.",
+        "color": 1,
+        "width": 210,
+        "height": 130
+      }
+    }
+  ],
+  "connections": {
+    "Qualifier la demande": {
+      "main": [
+        [
+          {
+            "node": "Fixer l'urgence et le responsable",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Claude": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "Qualifier la demande",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Fixer l'urgence et le responsable": {
+      "main": [
+        [
+          {
+            "node": "Créer la fiche dans Notion",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Chaque matin à 9 h": {
+      "main": [
+        [
+          {
+            "node": "Configuration des relances",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Configuration des relances": {
+      "main": [
+        [
+          {
+            "node": "Chercher les demandes ouvertes",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Chercher les demandes ouvertes": {
+      "main": [
+        [
+          {
+            "node": "Repérer les échéances proches",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Repérer les échéances proches": {
+      "main": [
+        [
+          {
+            "node": "Relancer le responsable",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Recevoir la demande": {
+      "main": [
+        [
+          {
+            "node": "Configuration",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Créer la fiche dans Notion": {
+      "main": [
+        [
+          {
+            "node": "Répondre au formulaire",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Répondre au formulaire": {
+      "main": [
+        [
+          {
+            "node": "Prévenir le Legal",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Configuration": {
+      "main": [
+        [
+          {
+            "node": "Vérifier la demande",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Vérifier la demande": {
+      "main": [
+        [
+          {
+            "node": "Qualifier la demande",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Refuser l'envoi",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1"
+  }
+}

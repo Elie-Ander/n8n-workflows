@@ -1,6 +1,6 @@
 # Workflows n8n
 
-Je m'appelle Elie LISSODA et je construis des automatisations marketing et commerciales avec n8n et l'IA. Voici dix-huit workflows que j'ai conçus pour de vrais besoins : être cité par les IA, suivre ses chiffres sans y passer la matinée, trouver et relancer des prospects, garder un CRM propre, lire des factures, surveiller ses automatisations.
+Je m'appelle Elie LISSODA et je construis des automatisations marketing, commerciales et internes avec n8n et l'IA. Voici vingt workflows que j'ai conçus pour de vrais besoins : être cité par les IA, suivre ses chiffres sans y passer la matinée, trouver et relancer des prospects, garder un CRM propre, piloter un recrutement, trier les demandes au Legal, lire des factures, surveiller ses automatisations.
 
 Chacun est prêt à importer. Dans n8n, des notes de couleur expliquent chaque étape. Sur GitHub, le README du dossier dit ce qu'il fait, comment l'installer, et ce qui a été testé.
 
@@ -33,6 +33,13 @@ Chacun est prêt à importer. Dans n8n, des notes de couleur expliquent chaque �
 | [Qualité des données CRM](qualite-donnees-crm/) | Remet en forme e-mails et téléphones, regroupe les doublons, note la base sur 100 et corrige HubSpot par lots | HubSpot, Gmail |
 | [Migration de contacts](migration-contacts/) | Déplace des contacts d'un outil à l'autre : champs mis en correspondance, données nettoyées, consentements relus, test à blanc et rapport d'écarts | Tables n8n |
 | [Agent WhatsApp : conversations et alertes](agent-whatsapp/) | Reçoit les échanges d'un agent WhatsApp, range chacun dans une table et vous alerte sur Telegram quand l'agent passe la main à une personne | Tables n8n, Telegram |
+
+### People et Legal
+
+| Workflow | Ce qu'il fait | Outils |
+|---|---|---|
+| [Point recrutement du lundi](point-recrutement-lundi/) | Calcule chaque lundi l'entonnoir, les délais et les candidats bloqués, fait rédiger le point par Claude sans qu'il invente un chiffre, l'envoie par e-mail et crée les relances dans Notion | Tables n8n, Claude, Gmail, Notion |
+| [Demandes au Legal](demandes-legal/) | Reçoit les demandes par un formulaire web, les fait classer par Claude, fixe l'urgence par des règles écrites, crée la fiche Notion, donne son délai au demandeur et relance avant l'échéance | Claude, Notion, Telegram |
 
 ### Documents, IA et fiabilité
 

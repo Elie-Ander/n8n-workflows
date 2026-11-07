@@ -1,0 +1,594 @@
+{
+  "name": "Point recrutement du lundi",
+  "nodes": [
+    {
+      "id": "e3fcc792-c300-4417-9060-d07d5e3ddead",
+      "name": "Chaque lundi à 8 h",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.4,
+      "position": [
+        0,
+        300
+      ],
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "field": "weeks",
+              "weeksInterval": 1,
+              "triggerAtDay": [
+                1
+              ],
+              "triggerAtHour": 8,
+              "triggerAtMinute": 0
+            }
+          ]
+        }
+      }
+    },
+    {
+      "id": "29f2a0cf-9e92-45cc-a202-35b8c1bb7a3c",
+      "name": "Configuration",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        224,
+        400
+      ],
+      "parameters": {
+        "mode": "manual",
+        "includeOtherFields": false,
+        "assignments": {
+          "assignments": [
+            {
+              "id": "c1",
+              "name": "date_du_point",
+              "value": "={{ $now.toFormat('yyyy-MM-dd') }}",
+              "type": "string"
+            },
+            {
+              "id": "c2",
+              "name": "destinataire",
+              "value": "equipe-recrutement@exemple.fr",
+              "type": "string"
+            },
+            {
+              "id": "c5",
+              "name": "id_base_relances",
+              "value": "ID_DE_VOTRE_BASE_NOTION",
+              "type": "string"
+            },
+            {
+              "id": "c3",
+              "name": "lien_relances",
+              "value": "https://www.notion.so/votre-base-des-relances",
+              "type": "string"
+            },
+            {
+              "id": "c4",
+              "name": "seuil_relance_jours",
+              "value": 10,
+              "type": "number"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "id": "acd8225b-669f-4c55-9d36-189b30641006",
+      "name": "Lancer le point à la main",
+      "type": "n8n-nodes-base.manualTrigger",
+      "typeVersion": 1,
+      "position": [
+        0,
+        500
+      ],
+      "parameters": {}
+    },
+    {
+      "id": "20c46b43-4d81-4993-a03f-d2db30fcbaeb",
+      "name": "Lire les candidatures",
+      "type": "n8n-nodes-base.dataTable",
+      "typeVersion": 1.1,
+      "position": [
+        448,
+        400
+      ],
+      "parameters": {
+        "resource": "row",
+        "operation": "get",
+        "dataTableId": {
+          "__rl": true,
+          "mode": "id",
+          "value": "",
+          "cachedResultName": "Candidatures"
+        },
+        "returnAll": true
+      },
+      "executeOnce": true,
+      "retryOnFail": true,
+      "maxTries": 3,
+      "waitBetweenTries": 5000
+    },
+    {
+      "id": "69af769b-38b5-40da-beff-f0016bd6ba35",
+      "name": "Calculer les indicateurs",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        672,
+        400
+      ],
+      "parameters": {
+        "mode": "runOnceForAllItems",
+        "language": "javaScript",
+        "jsCode": "// Tous les chiffres sont calculés ici, par le code. L'IA ne fait que rédiger à partir de ce résultat.\nconst conf = $('Configuration').first().json;\nconst ref = new Date(conf.date_du_point + 'T00:00:00Z');\nconst J = 86400000;\nconst jours = (d) => Math.round((ref - new Date(d + 'T00:00:00Z')) / J);\nconst ETAPES = [['Candidature reçue','recue_le'],['Premier échange','premier_echange_le'],['Business case','business_case_le'],['Entretien métier','entretien_metier_le'],['Entretien inversé','entretien_inverse_le'],['Entretien final','entretien_final_le'],['Offre','offre_le'],['Embauche','embauche_le']];\nconst rows = $input.all().map((i) => i.json);\nconst enCours = rows.filter((r) => r.statut === 'En cours');\nconst embauches = rows.filter((r) => r.statut === 'Embauché');\nconst moy = (a) => (a.length ? Math.round((a.reduce((s, x) => s + x, 0) / a.length) * 10) / 10 : 0);\nconst ecart = (a, b) => (new Date(b) - new Date(a)) / J;\n\nconst entonnoir = ETAPES.map(([etape, c]) => ({ etape, nb: rows.filter((r) => r[c]).length }));\nentonnoir.forEach((x, i) => { x.passage = i ? Math.round((100 * x.nb) / entonnoir[i - 1].nb) : null; });\n\nconst delais = ETAPES.slice(1).map(([etape, c], i) => {\n  const avant = ETAPES[i][1];\n  return { passage: ETAPES[i][0] + ' → ' + etape, jours: moy(rows.filter((r) => r[c]).map((r) => ecart(r[avant], r[c]))) };\n});\nconst plusLent = delais.reduce((a, b) => (b.jours > a.jours ? b : a));\n\nconst compte = (c, a, b) => rows.filter((r) => r[c] && jours(r[c]) >= a && jours(r[c]) < b).length;\nconst semaine = { recues: compte('recue_le', 0, 7), recues_avant: compte('recue_le', 7, 14), premiers_echanges: compte('premier_echange_le', 0, 7), premiers_echanges_avant: compte('premier_echange_le', 7, 14), offres: compte('offre_le', 0, 7), embauches: compte('embauche_le', 0, 7) };\n\nconst parSource = {};\nrows.forEach((r) => { const s = (parSource[r.source] ||= { source: r.source, candidatures: 0, retenus: 0, embauches: 0 }); s.candidatures++; if (r.premier_echange_le) s.retenus++; if (r.statut === 'Embauché') s.embauches++; });\nconst sources = Object.values(parSource).map((s) => ({ ...s, taux: Math.round((100 * s.retenus) / s.candidatures) })).sort((a, b) => b.taux - a.taux);\n\nconst charge = {};\nenCours.forEach((r) => { charge[r.recruteur] = (charge[r.recruteur] || 0) + 1; });\nconst recruteurs = Object.entries(charge).map(([nom, nb]) => ({ nom, nb })).sort((a, b) => b.nb - a.nb);\n\nconst ACTION = { 'Candidature reçue': 'Trier la candidature et répondre au candidat', 'Premier échange': 'Proposer le business case ou clore avec un retour', 'Business case': 'Relancer pour le rendu ou fixer le débrief', 'Entretien métier': \"Programmer l'entretien inversé\", 'Entretien inversé': \"Planifier l'entretien final\", 'Entretien final': \"Décider et préparer l'offre\", 'Offre': \"Relancer la réponse à l'offre\" };\nconst derniere = (r) => ETAPES.map(([, c]) => r[c]).filter(Boolean).pop();\nconst relances = enCours.map((r) => ({ candidat: r.candidat, poste: r.poste, etape: r.etape_actuelle, recruteur: r.recruteur, jours: jours(derniere(r)), action: ACTION[r.etape_actuelle] || 'Faire le point' }))\n  .filter((x) => x.jours > conf.seuil_relance_jours).sort((a, b) => b.jours - a.jours);\n\nconst delaiEmbauche = Math.round(moy(embauches.map((r) => ecart(r.recue_le, r.embauche_le))));\nconst resume = [\n  'Point du ' + conf.date_du_point + '.',\n  'Dans la table : ' + rows.length + ' candidatures, ' + enCours.length + ' en cours, ' + embauches.length + ' embauches, ' + delaiEmbauche + \" jours en moyenne de la candidature à l'embauche.\",\n  'Cette semaine : ' + semaine.recues + \" candidatures reçues (\" + semaine.recues_avant + \" la semaine d'avant), \" + semaine.premiers_echanges + ' premiers échanges (' + semaine.premiers_echanges_avant + \" la semaine d'avant), \" + semaine.offres + ' offres, ' + semaine.embauches + ' embauches.',\n  \"Taux de passage d'une étape à l'autre : \" + entonnoir.slice(1).map((x) => x.etape + ' ' + x.passage + ' %').join(', ') + '.',\n  'Passage le plus lent : ' + plusLent.passage + ', ' + plusLent.jours + ' jours en moyenne.',\n  'Sources (part des candidats retenus au premier échange) : ' + sources.map((s) => s.source + ' ' + s.taux + ' % sur ' + s.candidatures).join(' ; ') + '.',\n  'Candidats en cours par recruteur : ' + recruteurs.map((x) => x.nom + ' ' + x.nb).join(', ') + '.',\n  'Candidats en attente depuis plus de ' + conf.seuil_relance_jours + ' jours : ' + relances.length + (relances.length ? ' (' + relances.map((x) => x.candidat + ', ' + x.poste + ', ' + x.etape + ', ' + x.recruteur + ', ' + x.jours + ' j').join(' ; ') + ')' : '') + '.',\n].join('\\n');\n\nreturn [{ json: { date_du_point: conf.date_du_point, total: rows.length, en_cours: enCours.length, embauches: embauches.length, delai_embauche: delaiEmbauche, semaine, entonnoir, delais, plus_lent: plusLent, sources, recruteurs, relances, resume } }];"
+      }
+    },
+    {
+      "id": "e44f811a-1da0-4e5b-8616-0a220d8db56a",
+      "name": "Rédiger le point du lundi",
+      "type": "@n8n/n8n-nodes-langchain.chainLlm",
+      "typeVersion": 1.9,
+      "position": [
+        896,
+        200
+      ],
+      "parameters": {
+        "promptType": "define",
+        "text": "=Tu prépares le point recrutement du lundi pour l'équipe Talent Acquisition. Voici les chiffres, calculés par le code :\n{{ $json.resume }}\n\nÉcris en français, ton simple et direct, sans jargon et sans tiret cadratin. Utilise les guillemets français « ». Utilise uniquement les chiffres fournis : n'en invente aucun et n'en recalcule aucun. Sois bref : 120 mots au plus en tout.\nRends exactement trois parties, en HTML simple (h3, p, ul et li), sans autre texte avant ou après :\n<h3>Ce qui a bougé</h3> deux phrases au plus.\n<h3>Ce qui bloque</h3> deux phrases au plus, avec le passage le plus lent et les candidats en attente.\n<h3>Trois décisions pour cette semaine</h3> une liste de trois actions concrètes et courtes, chacune avec la personne qui s'en charge (un recruteur nommé, ou l'équipe)."
+      },
+      "retryOnFail": true,
+      "maxTries": 3,
+      "waitBetweenTries": 5000
+    },
+    {
+      "id": "d4051c16-ac8b-4fcf-b147-68f0f1b26a8d",
+      "name": "Claude",
+      "type": "@n8n/n8n-nodes-langchain.lmChatAnthropic",
+      "typeVersion": 1.6,
+      "position": [
+        896,
+        380
+      ],
+      "parameters": {
+        "model": {
+          "__rl": true,
+          "mode": "list",
+          "value": "claude-sonnet-5",
+          "cachedResultName": "Claude Sonnet 5"
+        },
+        "options": {
+          "maxTokensToSample": 3000
+        }
+      }
+    },
+    {
+      "id": "34bad26b-3639-4254-851c-71d725f3bf7d",
+      "name": "Mettre en forme le mail",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1180,
+        200
+      ],
+      "parameters": {
+        "mode": "runOnceForAllItems",
+        "language": "javaScript",
+        "jsCode": "const k = $('Calculer les indicateurs').first().json;\nconst conf = $('Configuration').first().json;\nconst texte = ($input.first().json.text || '').replace(/```html|```/g, '').trim();\nconst accent = '#2F5D8A', encre = '#222C36', doux = '#5B6570', ligne = '#EFE4D3';\nconst tuile = (v, l) => '<td style=\"padding:12px 14px;border:1px solid ' + ligne + ';border-radius:10px;text-align:center;width:25%\"><div style=\"font:600 26px Georgia,serif;color:' + encre + '\">' + v + '</div><div style=\"font-size:12px;color:' + doux + '\">' + l + '</div></td>';\nconst evol = (a, b) => a + ' <span style=\"color:' + doux + '\">(' + b + \" la semaine d'avant)</span>\";\nconst lignes = k.relances.map((r) => '<tr><td style=\"padding:6px 8px;border-bottom:1px solid ' + ligne + '\">' + r.candidat + '</td><td style=\"padding:6px 8px;border-bottom:1px solid ' + ligne + '\">' + r.poste + '</td><td style=\"padding:6px 8px;border-bottom:1px solid ' + ligne + '\">' + r.etape + '</td><td style=\"padding:6px 8px;border-bottom:1px solid ' + ligne + '\">' + r.recruteur + '</td><td style=\"padding:6px 8px;border-bottom:1px solid ' + ligne + ';text-align:right\">' + r.jours + ' j</td></tr>').join('');\nconst html = '<div style=\"font-family:Helvetica,Arial,sans-serif;color:' + encre + ';max-width:640px;margin:0 auto\">'\n + '<p style=\"font-size:12px;color:' + accent + ';font-weight:700;letter-spacing:.06em;text-transform:uppercase;margin:0\">Recrutement</p>'\n + '<h1 style=\"font:600 28px Georgia,serif;margin:4px 0 16px\">Point recrutement du lundi ' + k.date_du_point.split('-').reverse().join('/') + '</h1>'\n + '<table style=\"width:100%;border-collapse:separate;border-spacing:8px 0\"><tr>' + tuile(k.total, 'candidatures') + tuile(k.en_cours, 'en cours') + tuile(k.embauches, 'embauches') + tuile(k.delai_embauche + ' j', \"jusqu'à l'embauche\") + '</tr></table>'\n + '<div style=\"font-size:15px;line-height:1.5;margin-top:12px\">' + texte + '</div>'\n + '<h3 style=\"margin:18px 0 6px\">Cette semaine</h3><ul style=\"font-size:14px;line-height:1.6;margin:0;padding-left:18px\">'\n + '<li>Candidatures reçues : ' + evol(k.semaine.recues, k.semaine.recues_avant) + '</li>'\n + '<li>Premiers échanges : ' + evol(k.semaine.premiers_echanges, k.semaine.premiers_echanges_avant) + '</li>'\n + '<li>Offres : ' + k.semaine.offres + ', embauches : ' + k.semaine.embauches + '</li></ul>'\n + '<h3 style=\"margin:18px 0 6px\">' + k.relances.length + ' relances créées dans Notion</h3>'\n + '<table style=\"width:100%;border-collapse:collapse;font-size:13px\">' + lignes + '</table>'\n + '<p style=\"margin:16px 0\"><a href=\"' + conf.lien_relances + '\" style=\"display:inline-block;background:' + accent + ';color:#fff;text-decoration:none;font-weight:700;padding:10px 16px;border-radius:8px\">Ouvrir les relances dans Notion</a></p>'\n + '<p style=\"font-size:12px;color:' + doux + '\">Chiffres calculés par le code, texte rédigé par Claude.</p></div>';\nreturn [{ json: { html, sujet: 'Point recrutement du lundi ' + k.date_du_point.split('-').reverse().join('/'), destinataire: conf.destinataire } }];"
+      }
+    },
+    {
+      "id": "0faa8b2b-b737-483c-8d24-a1e7e1e82a5c",
+      "name": "Envoyer le point du lundi",
+      "type": "n8n-nodes-base.gmail",
+      "typeVersion": 2.2,
+      "position": [
+        1404,
+        200
+      ],
+      "parameters": {
+        "resource": "message",
+        "operation": "send",
+        "sendTo": "={{ $json.destinataire }}",
+        "subject": "={{ $json.sujet }}",
+        "emailType": "html",
+        "message": "={{ $json.html }}",
+        "options": {
+          "appendAttribution": false,
+          "senderName": "Point recrutement"
+        }
+      },
+      "retryOnFail": true,
+      "maxTries": 2,
+      "waitBetweenTries": 5000
+    },
+    {
+      "id": "3b458b23-0b5d-4f6b-93dd-a21e95a4dc9f",
+      "name": "Chercher les relances déjà créées",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.5,
+      "position": [
+        896,
+        700
+      ],
+      "parameters": {
+        "method": "POST",
+        "url": "={{ 'https://api.notion.com/v1/databases/' + $('Configuration').first().json.id_base_relances + '/query' }}",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "notionApi",
+        "sendHeaders": true,
+        "specifyHeaders": "keypair",
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Notion-Version",
+              "value": "2022-06-28"
+            }
+          ]
+        },
+        "sendBody": true,
+        "contentType": "json",
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({ filter: { property: \"Point du\", date: { equals: $json.date_du_point } }, page_size: 100 }) }}"
+      },
+      "executeOnce": true,
+      "retryOnFail": true,
+      "maxTries": 3,
+      "waitBetweenTries": 5000
+    },
+    {
+      "id": "8d9c64a6-7df3-467d-b93e-0cb68b9e4d3a",
+      "name": "Garder les nouvelles relances",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1120,
+        700
+      ],
+      "parameters": {
+        "mode": "runOnceForAllItems",
+        "language": "javaScript",
+        "jsCode": "// Une seule tâche par candidat et par point : rien n'est créé deux fois\nconst deja = ($input.first().json.results || []).map((p) => ((p.properties.Candidat || {}).title || [])[0]?.plain_text);\nconst date = $('Configuration').first().json.date_du_point;\nreturn $('Calculer les indicateurs').first().json.relances.filter((r) => !deja.includes(r.candidat)).map((r) => ({ json: { ...r, date } }));"
+      }
+    },
+    {
+      "id": "558428ef-7dec-4b34-80aa-89e81edbf396",
+      "name": "Créer la tâche de relance dans Notion",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.5,
+      "position": [
+        1344,
+        700
+      ],
+      "parameters": {
+        "method": "POST",
+        "url": "https://api.notion.com/v1/pages",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "notionApi",
+        "sendHeaders": true,
+        "specifyHeaders": "keypair",
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Notion-Version",
+              "value": "2022-06-28"
+            }
+          ]
+        },
+        "sendBody": true,
+        "contentType": "json",
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({ parent: { database_id: $('Configuration').first().json.id_base_relances }, properties: { \"Candidat\": { title: [{ text: { content: $json.candidat } }] }, \"Poste\": { rich_text: [{ text: { content: $json.poste } }] }, \"Étape\": { select: { name: $json.etape } }, \"Recruteur\": { select: { name: $json.recruteur } }, \"Jours d'attente\": { number: $json.jours }, \"Action proposée\": { rich_text: [{ text: { content: $json.action } }] }, \"Statut\": { select: { name: \"À faire\" } }, \"Point du\": { date: { start: $json.date } } } }) }}",
+        "options": {
+          "batching": {
+            "batch": {
+              "batchSize": 1,
+              "batchInterval": 400
+            }
+          }
+        }
+      },
+      "onError": "continueRegularOutput",
+      "retryOnFail": true,
+      "maxTries": 3,
+      "waitBetweenTries": 5000
+    },
+    {
+      "id": "8977eafe-b519-4dc7-b318-d28e14c2d1b7",
+      "name": "Présentation",
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        -60,
+        -330
+      ],
+      "parameters": {
+        "content": "## Point recrutement du lundi\nPar **Elie LISSODA**, automatisation et IA · [elie.koudujob.com](https://elie.koudujob.com)\n\nChaque lundi, l'équipe recrutement reçoit son point : ce qui a bougé, ce qui bloque, trois décisions. Le code calcule tous les chiffres, Claude rédige sans en inventer. Les candidats en attente deviennent des tâches Notion, assignées au bon recruteur, sans doublon.\n\nPour le lancer : la table « Candidatures » (le workflow « Charger les exemples » la remplit de 423 candidatures fictives), la base Notion des relances (« Préparer Notion »), les connexions Notion, Claude et Gmail.\n\nUne question ? Je suis disponible sur [elie.koudujob.com](https://elie.koudujob.com) 😉",
+        "color": 2,
+        "width": 600,
+        "height": 290
+      }
+    },
+    {
+      "id": "9203ca24-2177-4379-95e4-508e6d852925",
+      "name": "Étape 1",
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        -60,
+        150
+      ],
+      "parameters": {
+        "content": "### 1. Déclencher\nChaque lundi à 8 h, ou à la main pour un essai.",
+        "color": 7,
+        "width": 210,
+        "height": 130
+      }
+    },
+    {
+      "id": "261720cf-44c7-4ca0-8b2b-b1024b640f5f",
+      "name": "Étape 2",
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        164,
+        250
+      ],
+      "parameters": {
+        "content": "### 2. Configuration\nDate du point, destinataire, seuil de relance.",
+        "color": 1,
+        "width": 210,
+        "height": 130
+      }
+    },
+    {
+      "id": "2029c34e-7b17-42d3-813c-cbd5e11e1879",
+      "name": "Étape 3",
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        388,
+        250
+      ],
+      "parameters": {
+        "content": "### 3. Lire les candidatures\nL'export de votre ATS, rangé dans une table n8n.",
+        "color": 5,
+        "width": 210,
+        "height": 130
+      }
+    },
+    {
+      "id": "525c5efd-d590-4e95-96e7-84d172afa843",
+      "name": "Étape 4",
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        612,
+        250
+      ],
+      "parameters": {
+        "content": "### 4. Calculer\nLe code calcule tout : entonnoir, délais, sources, charge, relances.",
+        "color": 1,
+        "width": 210,
+        "height": 130
+      }
+    },
+    {
+      "id": "bf2d4713-a875-421f-8053-d15e97ae3039",
+      "name": "Étape 5",
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        836,
+        40
+      ],
+      "parameters": {
+        "content": "### 5. Rédiger\nClaude écrit le point à partir des chiffres, sans en inventer.",
+        "color": 6,
+        "width": 210,
+        "height": 130
+      }
+    },
+    {
+      "id": "318b5ef5-bba4-4b1b-8cca-471550d663dd",
+      "name": "Étape 6",
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        1120,
+        40
+      ],
+      "parameters": {
+        "content": "### 6. Mettre en forme\nLes chiffres du code, le texte de Claude, un bouton vers Notion.",
+        "color": 4,
+        "width": 210,
+        "height": 130
+      }
+    },
+    {
+      "id": "77674d36-4615-4ecf-bd59-b6984f661e56",
+      "name": "Étape 7",
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        1344,
+        40
+      ],
+      "parameters": {
+        "content": "### 7. Envoyer\nPar mail, ou dans Slack en changeant ce nœud.",
+        "color": 4,
+        "width": 210,
+        "height": 130
+      }
+    },
+    {
+      "id": "9d4786ee-4c9d-4d6c-a1e9-9b893f6a6bf5",
+      "name": "Étape 8",
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        836,
+        550
+      ],
+      "parameters": {
+        "content": "### 8. Vérifier Notion\nLes relances déjà créées pour ce point.",
+        "color": 5,
+        "width": 210,
+        "height": 130
+      }
+    },
+    {
+      "id": "4c1c0a34-067a-4e17-abff-0a6546b45baf",
+      "name": "Étape 9",
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        1060,
+        550
+      ],
+      "parameters": {
+        "content": "### 9. Garder les nouvelles\nJamais deux fois la même tâche.",
+        "color": 1,
+        "width": 210,
+        "height": 130
+      }
+    },
+    {
+      "id": "0bcf79b7-bce2-4bed-95b4-a06740e800b2",
+      "name": "Étape 10",
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        1284,
+        550
+      ],
+      "parameters": {
+        "content": "### 10. Créer les tâches\nUne relance par candidat bloqué, assignée au recruteur.",
+        "color": 4,
+        "width": 210,
+        "height": 130
+      }
+    }
+  ],
+  "connections": {
+    "Chaque lundi à 8 h": {
+      "main": [
+        [
+          {
+            "node": "Configuration",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Configuration": {
+      "main": [
+        [
+          {
+            "node": "Lire les candidatures",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Lancer le point à la main": {
+      "main": [
+        [
+          {
+            "node": "Configuration",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Lire les candidatures": {
+      "main": [
+        [
+          {
+            "node": "Calculer les indicateurs",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Calculer les indicateurs": {
+      "main": [
+        [
+          {
+            "node": "Rédiger le point du lundi",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Chercher les relances déjà créées",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Rédiger le point du lundi": {
+      "main": [
+        [
+          {
+            "node": "Mettre en forme le mail",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Claude": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "Rédiger le point du lundi",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Mettre en forme le mail": {
+      "main": [
+        [
+          {
+            "node": "Envoyer le point du lundi",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Chercher les relances déjà créées": {
+      "main": [
+        [
+          {
+            "node": "Garder les nouvelles relances",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Garder les nouvelles relances": {
+      "main": [
+        [
+          {
+            "node": "Créer la tâche de relance dans Notion",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1"
+  }
+}

@@ -1,0 +1,148 @@
+{
+  "name": "Préparer Notion : demandes au Legal",
+  "nodes": [
+    {
+      "id": "p1",
+      "name": "Lancer la mise en place",
+      "type": "n8n-nodes-base.manualTrigger",
+      "typeVersion": 1,
+      "position": [
+        0,
+        400
+      ],
+      "parameters": {}
+    },
+    {
+      "id": "p2",
+      "name": "Configuration",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        224,
+        400
+      ],
+      "parameters": {
+        "mode": "manual",
+        "includeOtherFields": false,
+        "assignments": {
+          "assignments": [
+            {
+              "id": "p21",
+              "name": "id_page_parente",
+              "value": "ID_DE_LA_PAGE_NOTION_PARENTE",
+              "type": "string"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "id": "p3",
+      "name": "Créer la base des demandes au Legal",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.5,
+      "position": [
+        448,
+        400
+      ],
+      "parameters": {
+        "method": "POST",
+        "url": "https://api.notion.com/v1/databases",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "notionApi",
+        "sendHeaders": true,
+        "specifyHeaders": "keypair",
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Notion-Version",
+              "value": "2022-06-28"
+            }
+          ]
+        },
+        "sendBody": true,
+        "contentType": "json",
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({ parent: { type: \"page_id\", page_id: $json.id_page_parente }, icon: { type: \"emoji\", emoji: \"⚖️\" }, title: [{ text: { content: \"Demandes au Legal\" } }], properties: { \"Demande\": { title: {} }, \"Équipe\": { select: { options: [\"Sales\",\"Care\",\"Marketing\",\"People\",\"Tech\",\"Produit\",\"Finance\",\"Autre\"].map(n => ({ name: n })) } }, \"Demandeur\": { rich_text: {} }, \"Type\": { select: { options: [{ name: \"Contrat client\", color: \"blue\" }, { name: \"Contrat fournisseur ou partenaire\", color: \"purple\" }, { name: \"Contrat de travail et RH\", color: \"pink\" }, { name: \"Données personnelles (RGPD)\", color: \"orange\" }, { name: \"Litige ou réclamation\", color: \"red\" }, { name: \"Question juridique simple\", color: \"gray\" }] } }, \"Urgence\": { select: { options: [{ name: \"Haute\", color: \"red\" }, { name: \"Moyenne\", color: \"yellow\" }, { name: \"Basse\", color: \"gray\" }] } }, \"Échéance\": { date: {} }, \"Responsable\": { select: { options: [{ name: \"Head of Legal\" }, { name: \"Juriste\" }, { name: \"Réponse type\" }] } }, \"Statut\": { select: { options: [{ name: \"Nouvelle\", color: \"blue\" }, { name: \"En cours\", color: \"yellow\" }, { name: \"En attente d'informations\", color: \"orange\" }, { name: \"Traitée\", color: \"green\" }] } }, \"Informations manquantes\": { rich_text: {} }, \"Description\": { rich_text: {} }, \"Reçue le\": { date: {} } } }) }}"
+      },
+      "retryOnFail": true,
+      "maxTries": 2,
+      "waitBetweenTries": 5000
+    },
+    {
+      "id": "p4",
+      "name": "Présentation",
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        -60,
+        -60
+      ],
+      "parameters": {
+        "content": "## Préparer Notion : demandes au Legal\nPar **Elie LISSODA**, automatisation et IA · [elie.koudujob.com](https://elie.koudujob.com)\n\nCrée, une seule fois, la base Notion où arrivent les demandes : type, urgence, responsable, échéance, statut.\n\nPour le lancer : partagez une page Notion avec votre connexion, collez son identifiant dans la Configuration, puis un clic. L'identifiant de la base créée est dans la réponse du dernier nœud : collez-le dans la Configuration du workflow principal.\n\nUne question ? Je suis disponible sur [elie.koudujob.com](https://elie.koudujob.com) 😉",
+        "color": 2,
+        "width": 560,
+        "height": 290
+      }
+    },
+    {
+      "id": "p5",
+      "name": "Étape 1",
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        164,
+        250
+      ],
+      "parameters": {
+        "content": "### 1. Configuration\nLa page Notion qui accueille la base.",
+        "color": 1,
+        "width": 210,
+        "height": 130
+      }
+    },
+    {
+      "id": "p6",
+      "name": "Étape 2",
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        388,
+        250
+      ],
+      "parameters": {
+        "content": "### 2. Créer la base\nToutes les colonnes et leurs options, en un appel.",
+        "color": 4,
+        "width": 210,
+        "height": 130
+      }
+    }
+  ],
+  "connections": {
+    "Lancer la mise en place": {
+      "main": [
+        [
+          {
+            "node": "Configuration",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Configuration": {
+      "main": [
+        [
+          {
+            "node": "Créer la base des demandes au Legal",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1"
+  }
+}

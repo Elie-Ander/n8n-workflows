@@ -1,0 +1,358 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Demande au Legal</title>
+<meta name="description" content="Une demande au Legal, classée, résumée et suivie dès son envoi.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,600;12..96,700&family=Manrope:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+:root{
+  --fond:#F5F3EF;--carte:#FFFFFF;--encre:#152131;--texte:#2A3441;--doux:#6B7380;--ligne:#E5E1DA;--ligne-forte:#CFC9BF;
+  --ambre:#E8A33D;--ambre-pale:#FBF1DF;
+  --haute-fond:#FBE9E7;--haute:#A3322B;--moyenne-fond:#FBF1D9;--moyenne:#8A5A00;--basse-fond:#E8F2EA;--basse:#2F6B3B;
+  --rayon:16px
+}
+*{box-sizing:border-box}
+html{-webkit-text-size-adjust:100%}
+body{margin:0;background:var(--fond);color:var(--texte);font:400 16px/1.6 Manrope,system-ui,sans-serif;min-height:100dvh}
+h1,h2,h3,p{margin:0}
+button,input,textarea{font:inherit;color:inherit}
+.page{max-width:720px;margin:0 auto;padding:40px 16px 56px}
+.tete{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:28px}
+.espace{display:flex;align-items:center;gap:10px;font-weight:700;color:var(--encre);font-size:15px}
+.espace i{width:30px;height:30px;border-radius:8px;background:var(--encre);display:grid;place-items:center}
+.espace i svg{width:16px;height:16px;color:#fff}
+h1{font:700 clamp(30px,5vw,42px)/1.08 "Bricolage Grotesque",sans-serif;color:var(--encre);letter-spacing:-.02em;margin-bottom:10px}
+.chapo{color:var(--doux);font-size:17px;max-width:52ch;margin-bottom:28px}
+.carte{background:var(--carte);border:1px solid var(--ligne);border-radius:var(--rayon);padding:32px}
+.champ{margin-bottom:26px}
+fieldset.champ{border:0;padding:0;margin-inline:0}
+fieldset.champ legend{padding:0}
+.lab{display:flex;align-items:baseline;justify-content:space-between;gap:10px;font-weight:700;color:var(--encre);font-size:15px;margin-bottom:9px;width:100%}
+.lab small{font-weight:500;color:var(--doux);font-size:13px}
+.saisie{width:100%;background:#fff;border:1px solid var(--ligne-forte);border-radius:10px;padding:12px 14px;font-size:16px;transition:border-color .15s,box-shadow .15s}
+.saisie::placeholder{color:#9AA0A8}
+.saisie:hover{border-color:#B9B2A6}
+.saisie:focus{outline:none;border-color:var(--encre);box-shadow:0 0 0 3px rgba(232,163,61,.35)}
+textarea.saisie{min-height:132px;resize:vertical;line-height:1.55}
+.compteur{font-size:13px;color:var(--doux);margin-top:6px;text-align:right;font-variant-numeric:tabular-nums}
+.compteur.court{color:var(--haute)}
+.choix{display:flex;flex-wrap:wrap;gap:8px}
+.choix input{position:absolute;opacity:0;pointer-events:none}
+.choix label{display:inline-flex;align-items:center;height:40px;padding:0 16px;border-radius:10px;border:1px solid var(--ligne-forte);background:#fff;font-weight:600;font-size:15px;color:var(--texte);cursor:pointer;user-select:none;transition:background .15s,border-color .15s,color .15s,transform .15s}
+.choix label:hover{border-color:var(--encre);background:#FAF9F7}
+.choix label:active{transform:scale(.97)}
+.choix input:checked+label{background:var(--encre);border-color:var(--encre);color:#fff}
+.choix input:focus-visible+label{outline:2px solid var(--ambre);outline-offset:2px}
+.date{display:flex;flex-wrap:wrap;gap:8px;align-items:center}
+.date .saisie{width:auto;flex:0 0 190px;height:40px;padding:0 12px}
+.rapide{height:40px;padding:0 14px;border-radius:10px;border:1px solid var(--ligne-forte);background:#fff;font-weight:600;font-size:14.5px;cursor:pointer;transition:background .15s,border-color .15s,color .15s,transform .15s}
+.rapide:hover{border-color:var(--encre);background:#FAF9F7}
+.rapide:active{transform:scale(.97)}
+.rapide[aria-pressed="true"]{background:var(--encre);border-color:var(--encre);color:#fff}
+.rapide:focus-visible,.btn:focus-visible,.lien:focus-visible{outline:2px solid var(--ambre);outline-offset:2px}
+.piege{position:absolute;left:-9999px;width:1px;height:1px;overflow:hidden}
+.pied{display:flex;align-items:center;justify-content:space-between;gap:16px;margin-top:30px;padding-top:24px;border-top:1px solid var(--ligne)}
+.note{font-size:13.5px;color:var(--doux);max-width:34ch}
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:10px;height:48px;padding:0 22px;border:0;border-radius:10px;background:var(--encre);color:#fff;font-weight:700;font-size:16px;cursor:pointer;transition:background .15s,transform .15s;white-space:nowrap}
+.btn:hover{background:#24344A}
+.btn:active{transform:scale(.98)}
+.btn svg{width:17px;height:17px}
+.erreur{display:none;margin-top:16px;padding:12px 14px;border-radius:10px;background:var(--haute-fond);color:var(--haute);font-weight:600;font-size:14.5px}
+.erreur.vue{display:block}
+.attente,.resultat{display:none}
+.attente.vue,.resultat.vue{display:block}
+form.cache{display:none}
+.attente h2,.resultat h2{font:700 clamp(22px,3.4vw,28px)/1.2 "Bricolage Grotesque",sans-serif;color:var(--encre);letter-spacing:-.01em;outline:none}
+.etapes{list-style:none;margin:22px 0 0;padding:0;display:grid;gap:10px}
+.etapes li{display:flex;align-items:center;gap:12px;padding:13px 16px;border:1px solid var(--ligne);border-radius:12px;color:var(--doux);font-weight:600;transition:color .3s,border-color .3s}
+.etapes li .pt{flex:none;width:22px;height:22px;border-radius:50%;border:2px solid var(--ligne-forte);display:grid;place-items:center;transition:border-color .3s,background .3s}
+.etapes li .pt svg{width:12px;height:12px;color:#fff;opacity:0;transition:opacity .2s}
+.etapes li.encours{color:var(--encre);border-color:var(--ligne-forte)}
+.etapes li.encours .pt{border-color:var(--ambre);border-top-color:transparent;animation:tour .8s linear infinite}
+.etapes li.fait{color:var(--encre)}
+.etapes li.fait .pt{background:var(--basse);border-color:var(--basse);animation:none}
+.etapes li.fait .pt svg{opacity:1}
+@keyframes tour{to{transform:rotate(360deg)}}
+.recu{display:flex;align-items:center;gap:8px;font-size:14px;font-weight:700;color:var(--basse);margin-bottom:10px}
+.recu svg{width:18px;height:18px}
+.badges{display:flex;flex-wrap:wrap;gap:8px;margin:16px 0 24px}
+.badge{display:inline-flex;align-items:center;gap:7px;height:30px;padding:0 12px;border-radius:999px;font-size:13.5px;font-weight:700}
+.badge i{width:8px;height:8px;border-radius:50%;background:currentColor}
+.badge.Haute{background:var(--haute-fond);color:var(--haute)}
+.badge.Moyenne{background:var(--moyenne-fond);color:var(--moyenne)}
+.badge.Basse{background:var(--basse-fond);color:var(--basse)}
+.badge.type{background:#EEF0F3;color:var(--encre)}
+dl{margin:0}
+.grille{display:grid;grid-template-columns:1fr 1fr;gap:1px;background:var(--ligne);border:1px solid var(--ligne);border-radius:12px;overflow:hidden}
+.grille div{background:#fff;padding:14px 16px}
+.grille dt{font-size:13px;color:var(--doux);font-weight:600;margin-bottom:3px}
+.grille dd{margin:0;font-weight:700;color:var(--encre);font-size:16px}
+.grille dd::first-letter{text-transform:uppercase}
+.manque{margin-top:16px;padding:14px 16px;border-radius:12px;border:1px solid #F1DDB8;background:var(--ambre-pale)}
+.manque b{display:block;color:var(--moyenne);font-size:14px;margin-bottom:3px}
+.manque p{color:var(--texte);font-size:15px}
+.suite{margin-top:18px;color:var(--doux);font-size:15px}
+.actions{display:flex;flex-wrap:wrap;gap:10px;margin-top:26px}
+.signe{display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;margin-top:22px;color:var(--doux);font-size:13.5px}
+.lien{display:inline-flex;align-items:center;gap:8px;height:36px;padding:0 12px;border-radius:9px;border:1px solid var(--ligne-forte);background:#fff;color:var(--encre);font-weight:600;font-size:13.5px;text-decoration:none;transition:border-color .15s,background .15s}
+.lien:hover{border-color:var(--encre);background:#FAF9F7}
+.lien svg{width:13px;height:13px}
+@media (max-width:600px){
+  .page{padding-top:24px}
+  .carte{padding:22px 18px}
+  .pied{flex-direction:column;align-items:stretch}
+  .pied .btn{width:100%}
+  .grille{grid-template-columns:1fr}
+  .date .saisie{flex:1 1 100%}
+}
+@media (prefers-reduced-motion:reduce){*{transition:none!important;animation:none!important}}
+</style>
+</head>
+<body>
+<main class="page">
+  <header class="tete">
+    <div class="espace"><i aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v18M5 7h14M7 7l-3 7a3 3 0 0 0 6 0L7 7zM17 7l-3 7a3 3 0 0 0 6 0l-3-7zM8 21h8"/></svg></i>Espace Legal</div>
+  </header>
+
+  <h1>Une question pour le Legal ?</h1>
+  <p class="chapo">Décrivez votre besoin. Vous saurez tout de suite qui s'en occupe et sous quel délai.</p>
+
+  <section class="carte" aria-live="polite">
+    <form id="formulaire" novalidate>
+      <div class="champ">
+        <label class="lab" for="prenom">Votre prénom</label>
+        <input class="saisie" id="prenom" name="prenom" type="text" maxlength="60" autocomplete="given-name" placeholder="Camille" required>
+      </div>
+
+      <fieldset class="champ">
+        <legend class="lab">Votre équipe</legend>
+        <div class="choix" id="equipes"></div>
+      </fieldset>
+
+      <div class="champ">
+        <label class="lab" for="demande">Votre demande <small>en quelques phrases</small></label>
+        <textarea class="saisie" id="demande" name="demande" maxlength="2000" placeholder="Un client veut modifier la clause de résiliation de son contrat avant vendredi. Pouvez-vous relire la nouvelle version ?" required></textarea>
+        <div class="compteur" id="compteur">0 / 2000</div>
+      </div>
+
+      <fieldset class="champ">
+        <legend class="lab">Pour quand ? <small>facultatif</small></legend>
+        <div class="date">
+          <input class="saisie" id="echeance" name="echeance" type="date" aria-label="Date souhaitée">
+          <button type="button" class="rapide" data-jours="2" aria-pressed="false">Dans 2 jours</button>
+          <button type="button" class="rapide" data-jours="7" aria-pressed="false">Dans une semaine</button>
+          <button type="button" class="rapide" data-jours="" aria-pressed="false">Pas de date</button>
+        </div>
+      </fieldset>
+
+      <div class="champ">
+        <label class="lab" for="document">Lien vers le document <small>facultatif</small></label>
+        <input class="saisie" id="document" name="document" type="url" maxlength="300" placeholder="https://" inputmode="url">
+      </div>
+
+      <div class="piege" aria-hidden="true">
+        <label for="site_web">Site web</label>
+        <input id="site_web" name="site_web" type="text" tabindex="-1" autocomplete="off">
+      </div>
+
+      <div class="pied">
+        <p class="note">Votre demande est classée tout de suite, puis suivie par le Legal.</p>
+        <button class="btn" type="submit">Envoyer au Legal
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12h14M13 6l6 6-6 6"/></svg>
+        </button>
+      </div>
+      <p class="erreur" id="erreur" role="alert"></p>
+    </form>
+
+    <div class="attente" id="attente">
+      <h2>Votre demande est en cours de classement</h2>
+      <ol class="etapes" id="etapes">
+        <li><span class="pt"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3.2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg></span>Lecture de la demande</li>
+        <li><span class="pt"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3.2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg></span>Type de demande et résumé</li>
+        <li><span class="pt"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3.2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg></span>Urgence et responsable</li>
+        <li><span class="pt"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3.2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg></span>Fiche de suivi pour le Legal</li>
+      </ol>
+    </div>
+
+    <div class="resultat" id="resultat">
+      <p class="recu"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="9.5"/><path d="M7.5 12.5l3 3 6-6.5"/></svg>Demande reçue</p>
+      <h2 id="r-resume" tabindex="-1"></h2>
+      <div class="badges">
+        <span class="badge" id="r-urgence"><i></i><span></span></span>
+        <span class="badge type" id="r-type"></span>
+      </div>
+      <dl class="grille">
+        <div><dt>Réponse attendue sous</dt><dd id="r-delai"></dd></div>
+        <div><dt>Prise en charge par</dt><dd id="r-responsable"></dd></div>
+        <div><dt>Échéance souhaitée</dt><dd id="r-echeance"></dd></div>
+        <div><dt>Statut</dt><dd id="r-statut"></dd></div>
+      </dl>
+      <div class="manque" id="r-manque-bloc"><b>Pour aller plus vite</b><p id="r-manque"></p></div>
+      <p class="suite" id="r-suite">Le Legal est prévenu et suit votre demande dans sa base.</p>
+      <div class="actions">
+        <button class="btn" type="button" id="nouvelle">Nouvelle demande</button>
+      </div>
+    </div>
+  </section>
+
+  <div class="signe">
+    <span>Formulaire conçu par Elie LISSODA, automatisation et IA</span>
+    <a class="lien" href="https://elie.koudujob.com/">elie.koudujob.com
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M7 17L17 7M9 7h8v8"/></svg>
+    </a>
+  </div>
+</main>
+
+<script>
+(function () {
+  // Adresse de production du nœud « Recevoir la demande » de votre workflow n8n.
+  // Dans ce nœud, « Allowed Origins » doit contenir l'adresse du site qui héberge cette page.
+  var ADRESSE = 'https://VOTRE-N8N/webhook/demande-legal';
+  var EQUIPES = ['Sales', 'Care', 'Marketing', 'People', 'Tech', 'Produit', 'Finance', 'Autre'];
+  var $ = function (id) { return document.getElementById(id); };
+  var form = $('formulaire'), erreur = $('erreur');
+
+  var bloc = $('equipes');
+  EQUIPES.forEach(function (nom, i) {
+    var input = document.createElement('input');
+    input.type = 'radio'; input.name = 'equipe'; input.value = nom; input.id = 'eq-' + i;
+    var label = document.createElement('label');
+    label.htmlFor = input.id; label.textContent = nom;
+    bloc.appendChild(input); bloc.appendChild(label);
+  });
+
+  var demande = $('demande'), compteur = $('compteur');
+  function compter() {
+    var n = demande.value.trim().length;
+    compteur.textContent = n + ' / 2000';
+    compteur.classList.toggle('court', n > 0 && n < 15);
+  }
+  demande.addEventListener('input', compter);
+
+  function isoLocal(d) {
+    return d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0');
+  }
+  var echeance = $('echeance');
+  echeance.min = isoLocal(new Date());
+  var rapides = document.querySelectorAll('.rapide');
+  function marquer(bouton) {
+    rapides.forEach(function (b) { b.setAttribute('aria-pressed', b === bouton ? 'true' : 'false'); });
+  }
+  rapides.forEach(function (b) {
+    b.addEventListener('click', function () {
+      var j = b.getAttribute('data-jours');
+      if (j === '') { echeance.value = ''; }
+      else { var d = new Date(); d.setDate(d.getDate() + Number(j)); echeance.value = isoLocal(d); }
+      marquer(b);
+    });
+  });
+  echeance.addEventListener('input', function () { marquer(null); });
+
+  function montrerErreur(texte) { erreur.textContent = texte; erreur.classList.add('vue'); }
+
+  function dateLisible(iso) {
+    if (!iso) return 'Non précisée';
+    return new Date(iso + 'T12:00:00').toLocaleDateString('fr-FR', { weekday: 'long', day: 'numeric', month: 'long' });
+  }
+
+  var minuteur = null;
+  function lancerEtapes() {
+    var items = document.querySelectorAll('#etapes li'), i = 0;
+    items.forEach(function (li) { li.className = ''; });
+    items[0].className = 'encours';
+    minuteur = setInterval(function () {
+      if (i < items.length - 2) { items[i].className = 'fait'; i++; items[i].className = 'encours'; }
+    }, 1300);
+  }
+  function finirEtapes(suite) {
+    clearInterval(minuteur);
+    var items = document.querySelectorAll('#etapes li'), k = 0;
+    (function suivant() {
+      if (k >= items.length) { setTimeout(suite, 350); return; }
+      if (items[k].className !== 'fait') { items[k].className = 'fait'; k++; setTimeout(suivant, 260); }
+      else { k++; suivant(); }
+    })();
+  }
+
+  function afficher(r) {
+    $('r-resume').textContent = r.resume;
+    var u = $('r-urgence');
+    u.className = 'badge ' + r.urgence;
+    u.querySelector('span').textContent = 'Urgence ' + String(r.urgence).toLowerCase();
+    $('r-type').textContent = r.type;
+    $('r-delai').textContent = r.delai;
+    $('r-responsable').textContent = r.responsable;
+    $('r-echeance').textContent = dateLisible(r.echeance);
+    $('r-statut').textContent = r.statut;
+    var manque = (r.informations_manquantes || '').trim();
+    $('r-manque-bloc').style.display = manque ? '' : 'none';
+    $('r-manque').textContent = manque;
+    $('r-suite').textContent = r.fiche_creee
+      ? 'Le Legal est prévenu et suit votre demande dans sa base.'
+      : 'Le Legal est prévenu. La fiche de suivi sera créée à la main.';
+    $('attente').classList.remove('vue');
+    $('resultat').classList.add('vue');
+    $('r-resume').focus({ preventScroll: true });
+  }
+
+  function retourFormulaire(garder) {
+    $('attente').classList.remove('vue');
+    $('resultat').classList.remove('vue');
+    form.classList.remove('cache');
+    if (!garder) { form.reset(); marquer(null); compter(); erreur.classList.remove('vue'); $('prenom').focus(); }
+  }
+
+  form.addEventListener('submit', function (e) {
+    e.preventDefault();
+    erreur.classList.remove('vue');
+    var choisie = form.querySelector('input[name="equipe"]:checked');
+    var donnees = {
+      prenom: $('prenom').value.trim(),
+      equipe: choisie ? choisie.value : '',
+      demande: demande.value.trim(),
+      echeance: echeance.value,
+      document: $('document').value.trim(),
+      site_web: $('site_web').value
+    };
+    if (!donnees.prenom) { montrerErreur('Indiquez votre prénom.'); $('prenom').focus(); return; }
+    if (!donnees.equipe) { montrerErreur('Choisissez votre équipe.'); bloc.querySelector('input').focus(); return; }
+    if (donnees.demande.length < 15) { montrerErreur('Décrivez votre demande en une ou deux phrases.'); demande.focus(); return; }
+
+    form.classList.add('cache');
+    $('attente').classList.add('vue');
+    lancerEtapes();
+
+    var controle = new AbortController();
+    var delai = setTimeout(function () { controle.abort(); }, 45000);
+    fetch(ADRESSE, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(donnees),
+      signal: controle.signal
+    }).then(function (rep) {
+      return rep.json().catch(function () { return {}; }).then(function (corps) { return { ok: rep.ok, corps: corps }; });
+    }).then(function (res) {
+      clearTimeout(delai);
+      if (!res.ok || !res.corps.ok) {
+        clearInterval(minuteur);
+        retourFormulaire(true);
+        montrerErreur(res.corps.erreur || "L'envoi n'a pas abouti. Réessayez dans un instant.");
+        return;
+      }
+      finirEtapes(function () { afficher(res.corps); });
+    }).catch(function () {
+      clearTimeout(delai);
+      clearInterval(minuteur);
+      retourFormulaire(true);
+      montrerErreur("L'envoi n'a pas abouti. Vérifiez votre connexion, puis réessayez.");
+    });
+  });
+
+  $('nouvelle').addEventListener('click', function () { retourFormulaire(false); });
+})();
+</script>
+</body>
+</html>
